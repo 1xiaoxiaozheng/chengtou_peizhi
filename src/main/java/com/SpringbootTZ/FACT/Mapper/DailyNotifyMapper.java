@@ -10,6 +10,7 @@ import java.util.Map;
 
 @Mapper
 // 按日还款计划表中间表的接口
+
 public interface DailyNotifyMapper {
 
     // 查询表获取状态为0的记录，并附到实体类上
