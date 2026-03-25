@@ -41,6 +41,7 @@ public class CorsConfig implements WebMvcConfigurer {
         configuration.setAllowedHeaders(Arrays.asList("*"));
 
         // 允许携带凭证
+        //测试内容
         configuration.setAllowCredentials(true);
 
         // 预检请求的缓存时间
