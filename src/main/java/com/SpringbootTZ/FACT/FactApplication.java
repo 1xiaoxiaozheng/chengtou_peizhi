@@ -13,7 +13,7 @@ public class FactApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(FactApplication.class, args);
-        System.out.println("好读书"); // 打印好读书
+        System.out.println("好"); // 打印好读书
     }
 
 //好读书
