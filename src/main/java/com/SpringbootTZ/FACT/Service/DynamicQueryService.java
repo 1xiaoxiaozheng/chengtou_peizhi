@@ -41,6 +41,12 @@ public class DynamicQueryService {
             throw new IllegalArgumentException("未找到sqlKey配置: " + key);
         }
 
+        // 启用/禁用：禁用时直接拒绝执行
+        Integer enabled = config.getEnabled();
+        if (enabled != null && enabled.intValue() == 0) {
+            throw new IllegalArgumentException("sqlKey已禁用: " + key);
+        }
+
         String baseTable = validateIdentifier(config.getBaseTable(), "base_table");
         List<String> selectableFields = parseStringList(config.getSelectableFields());
         List<ConditionRule> conditionRules = parseConditionRules(config.getConditionFields());

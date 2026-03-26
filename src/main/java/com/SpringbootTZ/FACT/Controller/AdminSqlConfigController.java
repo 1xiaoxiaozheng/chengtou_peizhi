@@ -2,6 +2,7 @@ package com.SpringbootTZ.FACT.Controller;
 
 import com.SpringbootTZ.FACT.Entity.SysSqlConfig;
 import com.SpringbootTZ.FACT.Service.ConfigFileRepository;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -53,6 +54,22 @@ public class AdminSqlConfigController {
             resp.put("success", found != null);
             resp.put("message", found != null ? "ok" : "未找到");
             resp.put("data", found);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            resp.put("data", null);
+        }
+        return resp;
+    }
+
+    @DeleteMapping("/{sqlKey}")
+    public Map<String, Object> delete(@PathVariable String sqlKey) {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            configFileRepository.deleteSqlConfig(sqlKey);
+            resp.put("success", true);
+            resp.put("message", "删除成功");
+            resp.put("data", null);
         } catch (Exception e) {
             resp.put("success", false);
             resp.put("message", e.getMessage());

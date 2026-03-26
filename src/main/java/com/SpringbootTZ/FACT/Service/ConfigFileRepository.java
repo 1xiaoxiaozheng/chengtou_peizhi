@@ -237,6 +237,33 @@ public class ConfigFileRepository {
         }
     }
 
+    public void saveAllSqlConfigs(List<SysSqlConfig> rows) throws Exception {
+        if (rows == null) {
+            rows = new ArrayList<>();
+        }
+        writeJsonAtomic(externalSqlFile(), rows);
+        synchronized (loadLock) {
+            reloadFromDiskIntoMemory();
+        }
+    }
+
+    public void deleteSqlConfig(String sqlKey) throws Exception {
+        if (sqlKey == null || sqlKey.trim().isEmpty()) {
+            throw new IllegalArgumentException("sqlKey 不能为空");
+        }
+        String key = sqlKey.trim();
+        ensureMemoryLoaded();
+        List<SysSqlConfig> all = new ArrayList<>(listAllSqlConfigs());
+        boolean removed = all.removeIf(c -> c != null && key.equals(c.getSqlKey()));
+        if (!removed) {
+            throw new IllegalArgumentException("未找到配置: " + key);
+        }
+        writeJsonAtomic(externalSqlFile(), all);
+        synchronized (loadLock) {
+            reloadFromDiskIntoMemory();
+        }
+    }
+
     public List<SysDict> getDictByType(String dictType) {
         ensureMemoryLoaded();
         if (dictType == null || dictType.trim().isEmpty()) {
