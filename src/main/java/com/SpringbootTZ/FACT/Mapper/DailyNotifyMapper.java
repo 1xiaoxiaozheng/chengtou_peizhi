@@ -17,6 +17,25 @@ public interface DailyNotifyMapper {
     @Select("SELECT * FROM Middle_Insert_Records WHERE process_status = 0 ORDER BY create_time ASC")
     public List<Map<String, Object>> getStatusNot();
 
+    @Select("SELECT TOP (${limit}) * FROM Middle_Insert_Records WHERE process_status = 0 ORDER BY create_time ASC")
+    List<Map<String, Object>> getStatusNotLimit(@Param("limit") Integer limit);
+
+    @Select("SELECT COUNT(1) FROM Middle_Insert_Records WHERE process_status = 0")
+    Integer countPending();
+
+    @Select("SELECT TOP (${limit}) id, target_table_id, monitored_field, fail_reason, retry_count, create_time, process_time " +
+            "FROM Middle_Insert_Records WHERE process_status = 2 ORDER BY process_time DESC, id DESC")
+    List<Map<String, Object>> listFailedSamples(@Param("limit") Integer limit);
+
+    @Select("SELECT COUNT(1) FROM Middle_Insert_Records WHERE process_status = 2")
+    Integer countFailed();
+
+    @Select("SELECT COUNT(1) FROM Middle_Insert_Records WHERE process_status = 2 AND retry_count >= #{maxRetry}")
+    Integer countRetryLimitHits(@Param("maxRetry") Integer maxRetry);
+
+    @Update("UPDATE Middle_Insert_Records SET process_status = 0, process_time = NULL, fail_reason = NULL, retry_count = 0 WHERE process_status = 2")
+    int resetFailedToPending();
+
     /**
      * 查询有待处理按日表任务的流水号集合
      * 用于分期表处理前判断：若同流水号的按日表任务待处理，应跳过分期表，等下轮按日表先算

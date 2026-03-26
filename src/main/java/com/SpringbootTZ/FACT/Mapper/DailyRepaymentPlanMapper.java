@@ -56,9 +56,6 @@ public interface DailyRepaymentPlanMapper {
         @Update("UPDATE formmain_0029 SET field0061 = '已添加' WHERE id = #{id}")
         public void updateIsAddDetailFlag(@Param("id") String id);
 
-        // 根据id获取主表的还本模式
-        @Select("SELECT field0014 FROM formmain_0146 WHERE id = #{id}")
-        public String getRepaymentModeById(@Param("id") String id);
 
         // 删除指定formmain_id下所有字段都为null的明细表记录
         // 新数据字典：field0027 下柜资金(NUMERIC)，field0028 贷款余额(NUMERIC)，field0029 还本(NUMERIC)，
@@ -72,11 +69,6 @@ public interface DailyRepaymentPlanMapper {
                         "AND (field0031 IS NULL OR field0031 = '') " +
                         "AND field0026 IS NULL")
         public void deleteEmptyDetailRecords(@Param("formmain_id") String formmain_id);
-
-        // 根据流水号查询主表的贷款银行
-        // 新数据字典：formmain_0029，field0046 贷款银行，field0001 单据编号（作为流水号）
-        @Select("SELECT field0046 FROM formmain_0029 WHERE field0001 = #{serialNumber}")
-        public String getLoanBankBySerialNumber(@Param("serialNumber") String serialNumber);
 
         // 接收利率和流水号，根据流水号找到表并更改利率
         // 新数据字典：formmain_0029，field0042 最新利率，field0001 单据编号（作为流水号）
@@ -92,11 +84,6 @@ public interface DailyRepaymentPlanMapper {
         // 新数据字典：formmain_0029，field0001 单据编号（作为流水号）
         @Select("SELECT field0001 FROM formmain_0029 WHERE id = #{id}")
         public String getSerialNumberByMainTableId(@Param("id") String id);
-
-        // 根据明细表id获取流水号（单据编号）
-        // 新数据字典：formson_0030 明细表，formmain_0029 主表，field0001 单据编号（作为流水号）
-        @Select("SELECT field0001 FROM formmain_0029 WHERE id = (SELECT formmain_id FROM formson_0030 WHERE id = #{detailTableId})")
-        public String getSerialNumberByDetailTableId(@Param("detailTableId") String detailTableId);
 
         // 根据明细表id获取主表id
         // 新数据字典：formson_0030 明细表
@@ -134,19 +121,6 @@ public interface DailyRepaymentPlanMapper {
         public void updateDailyData(@Param("formmain_id") String formmain_id, @Param("time") String time,
                         @Param("loanBalance") String loanBalance, @Param("interest") String interest);
 
-        // 更新主表的合计字段
-        // 新数据字典：formmain_0029，field0034 下柜资金合计，field0035 贷款余额合计，field0036
-        // 还本合计，field0037 付息合计
-        @Update("UPDATE formmain_0029 SET field0034 = #{totalDisbursedAmount}, field0035 = #{totalLoanBalance}, field0036 = #{totalPrincipalPaid}, field0037 = #{totalInterestPaid} WHERE id = #{formmainId}")
-        public void updateMainTableSummaryFields(@Param("formmainId") String formmainId,
-                        @Param("totalDisbursedAmount") String totalDisbursedAmount,
-                        @Param("totalLoanBalance") String totalLoanBalance,
-                        @Param("totalPrincipalPaid") String totalPrincipalPaid,
-                        @Param("totalInterestPaid") String totalInterestPaid);
-
-        // 根据贷款银行查询所有按日还款计划表的流水号列表
-        @Select("SELECT field0023 FROM formmain_0146 WHERE field0025 = #{loanBank}")
-        public List<String> getLoanSerialNosByBank(@Param("loanBank") String loanBank);
 
         // 查询指定formmain_id下首次下柜日期（field0027不为null且大于0的最早日期）
         // 新数据字典：field0026 时间，field0027 下柜资金

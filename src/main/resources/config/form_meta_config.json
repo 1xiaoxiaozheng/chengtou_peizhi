@@ -1,0 +1,235 @@
+{
+  "version": 1,
+  "generatedFrom": [
+    "OA表单数据字典/模拟付息.md",
+    "OA表单数据字典/项目分期还款计划表.md"
+  ],
+  "forms": {
+    "formmain_0026": {
+      "name": "模拟付息",
+      "mainTable": "formmain_0026",
+      "mainFields": [
+        { "code": "field0009", "type": "VARCHAR", "length": 100, "label": "关联贷款项目", "input": "文本", "dbType": "NVARCHAR(100)" },
+        { "code": "field0022", "type": "VARCHAR", "length": 255, "label": "贷款项目编码", "input": "文本", "dbType": "NVARCHAR(255)" },
+        { "code": "field0010", "type": "VARCHAR", "length": 20, "label": "表单视图引用", "input": "表单自定义控件", "dbType": "NVARCHAR(20)" },
+        { "code": "field0011", "type": "DECIMAL", "length": 20, "label": "下柜资金合计", "input": "文本", "dbType": "NUMERIC(20,6)" },
+        { "code": "field0012", "type": "DECIMAL", "length": 20, "label": "贷款余额合计", "input": "文本", "dbType": "NUMERIC(20,6)" },
+        { "code": "field0013", "type": "DECIMAL", "length": 20, "label": "计划还本合计", "input": "文本", "dbType": "NUMERIC(20,6)" },
+        { "code": "field0014", "type": "DECIMAL", "length": 20, "label": "模拟付息合计", "input": "文本", "dbType": "NUMERIC(20,10)" },
+        { "code": "field0023", "type": "VARCHAR", "length": 255, "label": "日利息计算控件1", "input": "表单自定义控件", "dbType": "NVARCHAR(255)" },
+        { "code": "field0024", "type": "VARCHAR", "length": 100, "label": "是否保存数据", "input": "文本", "dbType": "NVARCHAR(100)" },
+        { "code": "field0026", "type": "TIMESTAMP", "length": 255, "label": "贷款开始日期", "input": "日期", "dbType": "DATETIME" },
+        { "code": "field0027", "type": "TIMESTAMP", "length": 255, "label": "贷款结束日期", "input": "日期", "dbType": "DATETIME" }
+      ],
+      "sons": [
+        {
+          "name": "明细表1",
+          "table": "formson_0044",
+          "fields": [
+            { "code": "field0016", "type": "TIMESTAMP", "length": 255, "label": "时间", "input": "日期", "dbType": "DATETIME" },
+            { "code": "field0017", "type": "DECIMAL", "length": 20, "label": "下柜资金", "input": "文本", "dbType": "NUMERIC(20,6)" },
+            { "code": "field0018", "type": "DECIMAL", "length": 20, "label": "贷款余额", "input": "文本", "dbType": "NUMERIC(20,6)" },
+            { "code": "field0019", "type": "DECIMAL", "length": 20, "label": "计划还本", "input": "文本", "dbType": "NUMERIC(20,6)" },
+            { "code": "field0020", "type": "DECIMAL", "length": 20, "label": "模拟付息", "input": "文本", "dbType": "NUMERIC(20,10)" },
+            { "code": "field0021", "type": "VARCHAR", "length": 100, "label": "备注-还款计划", "input": "文本", "dbType": "NVARCHAR(100)" }
+          ]
+        }
+      ],
+      "semantics": {
+        "billNo": null,
+        "rate": null,
+        "rateEffectiveTime": null,
+        "repayModeEnumField": null,
+        "interestModeEnumField": null
+      },
+      "enumIds": {}
+    },
+    "formmain_0039": {
+      "name": "还款计划表存储表",
+      "mainTable": "formmain_0039",
+      "mainFields": [
+        { "code": "field0001", "type": "VARCHAR", "length": 255, "label": "单据编号", "input": "文本", "dbType": "NVARCHAR(255)" },
+        { "code": "field0002", "type": "VARCHAR", "length": 20, "label": "经办人", "input": "选人", "dbType": "NVARCHAR(20)" },
+        { "code": "field0003", "type": "VARCHAR", "length": 20, "label": "经办部门", "input": "选部门", "dbType": "NVARCHAR(20)" },
+        { "code": "field0004", "type": "TIMESTAMP", "length": 255, "label": "经办日期", "input": "日期", "dbType": "DATETIME" },
+        { "code": "field0005", "type": "VARCHAR", "length": 100, "label": "贷款项目", "input": "文本", "dbType": "NVARCHAR(100)" },
+        { "code": "field0006", "type": "VARCHAR", "length": 100, "label": "贷款单位", "input": "文本", "dbType": "NVARCHAR(100)" },
+        { "code": "field0007", "type": "VARCHAR", "length": 100, "label": "贷款银行", "input": "文本", "dbType": "NVARCHAR(100)" },
+        { "code": "field0008", "type": "DECIMAL", "length": 20, "label": "合同金额", "input": "文本", "dbType": "NUMERIC(20,2)" },
+        { "code": "field0009", "type": "TIMESTAMP", "length": 255, "label": "贷款开始日期", "input": "日期", "dbType": "DATETIME" },
+        { "code": "field0010", "type": "TIMESTAMP", "length": 255, "label": "贷款结束日期", "input": "日期", "dbType": "DATETIME" },
+        { "code": "field0011", "type": "DECIMAL", "length": 20, "label": "贷款时间", "input": "文本", "dbType": "NUMERIC(20,0)" },
+        { "code": "field0012", "type": "DECIMAL", "length": 20, "label": "最新利率", "input": "文本", "dbType": "NUMERIC(20,6)" },
+        { "code": "field0013", "type": "DECIMAL", "length": 20, "label": "还本模式", "input": "下拉", "dbType": "NUMERIC(19,0)" },
+        { "code": "field0014", "type": "DECIMAL", "length": 20, "label": "付息模式", "input": "下拉", "dbType": "NUMERIC(19,0)" },
+        { "code": "field0015", "type": "DECIMAL", "length": 20, "label": "担保模式", "input": "下拉", "dbType": "NUMERIC(19,0)" },
+        { "code": "field0016", "type": "DECIMAL", "length": 20, "label": "贷款模式", "input": "下拉", "dbType": "NUMERIC(19,0)" },
+        { "code": "field0017", "type": "VARCHAR", "length": 255, "label": "资金用途", "input": "文本", "dbType": "NVARCHAR(255)" },
+        { "code": "field0034", "type": "DECIMAL", "length": 20, "label": "下柜资金合计", "input": "文本", "dbType": "NUMERIC(20,6)" },
+        { "code": "field0035", "type": "DECIMAL", "length": 20, "label": "贷款余额合计", "input": "文本", "dbType": "NUMERIC(20,6)" },
+        { "code": "field0036", "type": "DECIMAL", "length": 20, "label": "还本合计", "input": "文本", "dbType": "NUMERIC(20,2)" },
+        { "code": "field0037", "type": "DECIMAL", "length": 20, "label": "付息合计", "input": "文本", "dbType": "NUMERIC(20,10)" },
+        { "code": "field0038", "type": "DECIMAL", "length": 20, "label": "计划还本合计", "input": "文本", "dbType": "NUMERIC(20,2)" },
+        { "code": "field0039", "type": "DECIMAL", "length": 20, "label": "模拟付息合计", "input": "文本", "dbType": "NUMERIC(20,10)" },
+        { "code": "field0040", "type": "DECIMAL", "length": 20, "label": "默认还款日", "input": "文本", "dbType": "NUMERIC(20,0)" },
+        { "code": "field0042", "type": "TIMESTAMP", "length": 255, "label": "利率生效时间", "input": "日期", "dbType": "DATETIME" },
+        { "code": "field0043", "type": "VARCHAR", "length": 100, "label": "是否添加明细表", "input": "文本", "dbType": "NVARCHAR(100)" },
+        { "code": "field0044", "type": "DECIMAL", "length": 20, "label": "默认开始还款月", "input": "文本", "dbType": "NUMERIC(20,0)" }
+      ],
+      "sons": [
+        {
+          "name": "抵押物",
+          "table": "formson_0040",
+          "fields": [
+            { "code": "field0019", "type": "VARCHAR", "length": 100, "label": "抵押物", "input": "文本", "dbType": "NVARCHAR(100)" }
+          ]
+        },
+        {
+          "name": "担保公司",
+          "table": "formson_0041",
+          "fields": [
+            { "code": "field0021", "type": "VARCHAR", "length": 100, "label": "担保公司", "input": "文本", "dbType": "NVARCHAR(100)" }
+          ]
+        },
+        {
+          "name": "附件清单",
+          "table": "formson_0042",
+          "fields": [
+            { "code": "field0022", "type": "VARCHAR", "length": 100, "label": "文件名称", "input": "文本", "dbType": "NVARCHAR(100)" },
+            { "code": "field0023", "type": "VARCHAR", "length": 20, "label": "上传附件", "input": "上传附件", "dbType": "NVARCHAR(20)" },
+            { "code": "field0024", "type": "VARCHAR", "length": 255, "label": "备注", "input": "文本域", "dbType": "NVARCHAR(255)" }
+          ]
+        },
+        {
+          "name": "还款计划表",
+          "table": "formson_0043",
+          "fields": [
+            { "code": "field0025", "type": "DECIMAL", "length": 20, "label": "序号1", "input": "序号", "dbType": "NUMERIC(20,0)" },
+            { "code": "field0026", "type": "TIMESTAMP", "length": 255, "label": "时间", "input": "日期", "dbType": "DATETIME" },
+            { "code": "field0027", "type": "DECIMAL", "length": 20, "label": "下柜资金", "input": "文本", "dbType": "NUMERIC(20,6)" },
+            { "code": "field0028", "type": "DECIMAL", "length": 20, "label": "贷款余额", "input": "文本", "dbType": "NUMERIC(20,6)" },
+            { "code": "field0029", "type": "DECIMAL", "length": 20, "label": "还本", "input": "文本", "dbType": "NUMERIC(20,2)" },
+            { "code": "field0030", "type": "DECIMAL", "length": 20, "label": "付息", "input": "文本", "dbType": "NUMERIC(20,10)" },
+            { "code": "field0031", "type": "VARCHAR", "length": 255, "label": "备注-还款计划", "input": "文本", "dbType": "NVARCHAR(255)" },
+            { "code": "field0032", "type": "DECIMAL", "length": 20, "label": "计划还本", "input": "文本", "dbType": "NUMERIC(20,2)" },
+            { "code": "field0033", "type": "DECIMAL", "length": 20, "label": "模拟付息", "input": "文本", "dbType": "NUMERIC(20,10)" },
+            { "code": "field0047", "type": "VARCHAR", "length": 100, "label": "是否默认还款日", "input": "文本", "dbType": "NVARCHAR(100)" }
+          ]
+        }
+      ],
+      "semantics": {
+        "billNo": "field0001",
+        "latestRate": "field0012",
+        "rateEffectiveTime": "field0042",
+        "repayModeEnumField": "field0013",
+        "interestModeEnumField": "field0014",
+        "sumOutCabinet": "field0034"
+      },
+      "enumIds": {
+        "repay_mode_installment_principal": null,
+        "interest_mode_installment_interest": null
+      },
+      "events": {
+        "installment_principal_change_monitor": {
+          "type": "rowChange",
+          "triggerName": "trg_formson_0043_monitor",
+          "source": {
+            "table": "formson_0043",
+            "mainJoin": {
+              "mainTable": "formmain_0039",
+              "childMainIdField": "formmain_id",
+              "mainIdField": "ID"
+            }
+          },
+          "businessFilters": [
+            {
+              "mainEnumField": "field0013",
+              "enumShowValue": "分期还本",
+              "matchType": "eq"
+            },
+            {
+              "mainEnumField": "field0014",
+              "enumShowValue": "分期付息",
+              "matchType": "neq_or_null"
+            }
+          ],
+          "monitoredFields": [
+            { "childField": "field0027", "logFieldCode": "field0027", "onlyIfNewNotNull": true },
+            { "childField": "field0029", "logFieldCode": "field0029", "onlyIfNewNotNull": true }
+          ],
+          "output": {
+            "table": "Middle_Installment_Records",
+            "monitoredFieldFormat": "fieldCode={value}",
+            "targetTableId": "child.id",
+            "skipWhenNewValueIsNull": true
+          }
+        }
+      }
+    }
+    ,
+    "formmain_0032": {
+      "name": "利率变更主表（适配 interest_change_notify）",
+      "mainTable": "formmain_0032",
+      "mainFields": [
+        { "code": "field0001", "type": "VARCHAR", "length": 255, "label": "单据编号", "input": "文本", "dbType": "NVARCHAR(255)" },
+        { "code": "field0042", "type": "DECIMAL", "length": 20, "label": "利率值", "input": "文本", "dbType": "NUMERIC(20,6)" },
+        { "code": "field0041", "type": "TIMESTAMP", "length": 255, "label": "利率生效时间", "input": "日期", "dbType": "DATETIME" }
+      ],
+      "events": {
+        "interest_change_insert": {
+          "type": "afterInsert",
+          "triggerName": "trg_formmain_0032_insert",
+          "source": { "table": "formmain_0032" },
+          "output": {
+            "table": "interest_change_notify",
+            "mapping": {
+              "source_id": "child.id",
+              "bill_no": "field0001",
+              "current_rate": "field0042",
+              "rate_effective_time": "field0041",
+              "process_status": 0
+            },
+            "whereNotNull": [
+              "field0042",
+              "field0041"
+            ]
+          }
+        }
+      },
+      "enumIds": {}
+    },
+    "formmain_0030": {
+      "name": "按日还款计划表（适配 Middle_Insert_Records）",
+      "mainTable": "formmain_0030",
+      "sons": [
+        {
+          "name": "按日还款计划子表",
+          "table": "formson_0030",
+          "fields": [
+            { "code": "field0027", "type": "DECIMAL", "length": 20, "label": "下柜资金", "input": "文本", "dbType": "NUMERIC(20,6)" },
+            { "code": "field0029", "type": "DECIMAL", "length": 20, "label": "还本", "input": "文本", "dbType": "NUMERIC(20,2)" }
+          ]
+        }
+      ],
+      "events": {
+        "daily_installment_principal_change_monitor": {
+          "type": "rowChange",
+          "triggerName": "trg_formson_0030_monitor",
+          "source": { "table": "formson_0030" },
+          "monitoredFields": [
+            { "childField": "field0027", "logFieldCode": "field0027", "onlyIfNewNotNull": true },
+            { "childField": "field0029", "logFieldCode": "field0029", "onlyIfNewNotNull": true }
+          ],
+          "output": {
+            "table": "Middle_Insert_Records",
+            "monitoredFieldFormat": "{fieldCode}={value}",
+            "targetTableId": "child.id",
+            "skipWhenNewValueIsNull": true
+          }
+        }
+      },
+      "enumIds": {}
+    }
+  }
+}
+

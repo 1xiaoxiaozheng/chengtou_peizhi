@@ -61,6 +61,17 @@
                         <el-option v-for="t in dictTypes" :key="t" :label="t" :value="t"/>
                     </el-select>
                     <el-tag type="info" size="small">共 {{ (dictRowsFiltered || []).length }} 条</el-tag>
+                    <el-popover v-if="dictViewType && (dictTypeUsedBySqlKeys[dictViewType] || []).length>0" placement="bottom" width="420" trigger="hover">
+                        <template #reference>
+                            <el-tag type="warning" size="small">
+                                被引用 {{ (dictTypeUsedBySqlKeys[dictViewType] || []).length }} 条规则
+                            </el-tag>
+                        </template>
+                        <div class="muted" style="margin-bottom:8px;">引用该 dictType 的 sql_key：</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                            <el-tag v-for="k in (dictTypeUsedBySqlKeys[dictViewType] || [])" :key="k" size="small">{{ k }}</el-tag>
+                        </div>
+                    </el-popover>
                 </el-space>
                 <el-table :data="dictRowsFiltered" border stripe size="small" style="width:100%">
                     <el-table-column prop="dictType" label="字典类型" width="160">
@@ -142,7 +153,7 @@
                         <span>已保存的查询规则总览：通过 `sql_key` 触发对应查询。</span>
                     </template>
                     <p class="muted" style="margin:8px 0 0;line-height:1.5;">
-                        数据来自服务端已落盘配置；点击「编辑」进入 Tab③ 配置详情。
+                        数据来自服务端已落盘配置；点击「编辑」在右侧抽屉中配置详情。
                     </p>
                 </el-alert>
                 <el-space wrap>
@@ -243,186 +254,272 @@
                         @size-change="(s)=>{sqlPageSize=s; sqlPage=1;}"/>
             </el-space>
         </el-tab-pane>
-
-        <!-- 3 SQL 配置编辑（核心） -->
-        <el-tab-pane label="③ SQL 配置编辑" name="sql-edit">
-            <el-space direction="vertical" :size="16" style="width:100%;" alignment="stretch">
-                <el-alert type="success" show-icon :closable="false"
-                          title="Query Builder：通过白名单表/字段与字典绑定生成条件。"/>
-
-                <!-- ① 基本信息 -->
-                <el-card shadow="never">
-                    <div class="section-title">① 基本信息</div>
-                    <el-form label-width="100px" style="max-width:640px;">
-                        <el-form-item label="sql_key" required>
-                            <el-input v-model="sqlForm.sqlKey" placeholder="唯一标识，全局不可重复"/>
-                        </el-form-item>
-                        <el-form-item label="名称">
-                            <el-input v-model="sqlForm.remark" placeholder="展示用名称，写入 remark 字段"/>
-                        </el-form-item>
-                        <el-form-item label="启用/禁用">
-                            <el-switch v-model="sqlForm.enabled" :active-value="1" :inactive-value="0"
-                                       active-text="启用" inactive-text="禁用"/>
-                        </el-form-item>
-                    </el-form>
-                </el-card>
-
-                <!-- ② 表选择 -->
-                <el-card shadow="never">
-                    <div class="section-title">② 表选择（仅允许接口返回的表）</div>
-                    <el-space wrap>
-                        <el-select v-model="sqlForm.baseTable" filterable placeholder="请先刷新表列表后选择"
-                                   style="width:420px" @change="onTableChanged">
-                            <el-option v-for="t in tableOptions" :key="t" :label="t" :value="t"/>
-                        </el-select>
-                            <el-button type="primary" :loading="tablesLoading" @click="loadTables">加载表列表</el-button>
-                    </el-space>
-                    <p class="muted mb-12">切换表会清空：已选字段、条件、排序，并重新拉列。</p>
-                </el-card>
-
-                <!-- ③ 可查询字段 -->
-                <el-card shadow="never">
-                    <div class="section-title">③ 可查询字段（多选 → selectableFields）</div>
-                    <el-button type="primary" link :loading="colsLoading" :disabled="!sqlForm.baseTable" @click="loadColumns">
-                        加载可查询字段
-                    </el-button>
-                    <div v-if="!sqlForm.baseTable" class="muted">请先选择表</div>
-                    <el-checkbox-group v-else v-model="sqlForm.selectedFields" class="mb-12"
-                                       style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
-                        <el-checkbox v-for="c in columnOptions" :key="c" :label="c">{{ c }}</el-checkbox>
-                    </el-checkbox-group>
-                </el-card>
-
-                <!-- ④ 条件配置 -->
-                <el-card shadow="never">
-                    <div class="section-title">④ 查询条件（conditionFields，字段仅能来自上方已选字段）</div>
-                    <el-button type="primary" link :disabled="sqlForm.selectedFields.length===0" @click="addCondRow">添加条件</el-button>
-                    <span v-if="sqlForm.selectedFields.length===0" class="muted">请先勾选可查询字段</span>
-                    <el-table :data="sqlForm.conditions" border size="small" style="width:100%;margin-top:8px;">
-                        <el-table-column label="字段" width="220">
-                            <template #default="scope">
-                                <el-select v-model="scope.row.field" filterable placeholder="必选" style="width:100%">
-                                    <el-option v-for="f in sqlForm.selectedFields" :key="f" :label="f" :value="f"/>
-                                </el-select>
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="操作符" width="150">
-                            <template #default="scope">
-                                <el-select v-model="scope.row.op" style="width:100%">
-                                    <el-option label="等于 eq" value="eq"/>
-                                    <el-option label="模糊 like" value="like"/>
-                                    <el-option label="范围 between" value="between"/>
-                                </el-select>
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="绑定字典 dictType" min-width="200">
-                            <template #default="scope">
-                                <el-select v-model="scope.row.dict" filterable clearable placeholder="选择 dictType"
-                                           style="width:100%">
-                                    <el-option v-for="dt in dictTypes" :key="dt" :label="dt" :value="dt"/>
-                                </el-select>
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="操作" width="72" fixed="right">
-                            <template #default="scope">
-                                <el-button type="danger" link @click="removeCondRow(scope.$index)">删除</el-button>
-                            </template>
-                        </el-table-column>
-                    </el-table>
-                </el-card>
-
-                <!-- ⑤ 排序 -->
-                <el-card shadow="never">
-                    <div class="section-title">⑤ 排序（defaultSort）</div>
-                    <el-form inline>
-                        <el-form-item label="排序字段">
-                            <el-select v-model="sqlForm.sortField" filterable clearable placeholder="从已选字段中选"
-                                       style="width:220px" :disabled="sqlForm.selectedFields.length===0">
-                                <el-option v-for="f in sqlForm.selectedFields" :key="f" :label="f" :value="f"/>
-                            </el-select>
-                        </el-form-item>
-                        <el-form-item label="方向">
-                            <el-select v-model="sqlForm.sortDir" style="width:120px">
-                                <el-option label="升序 ASC" value="ASC"/>
-                                <el-option label="降序 DESC" value="DESC"/>
-                            </el-select>
-                        </el-form-item>
-                    </el-form>
-                </el-card>
-
-                <!-- ⑥ JSON 预览 -->
-                <el-card shadow="never">
-                    <div class="section-title">⑥ 预览（展开查看配置 JSON）</div>
-                    <el-collapse>
-                        <el-collapse-item title="逻辑配置（易读）" name="logic">
-                            <pre class="json-preview" style="margin-top:6px;">{{ logicalJsonText }}</pre>
-                        </el-collapse-item>
-                        <el-collapse-item title="保存请求体（驼峰）" name="body">
-                            <pre class="json-preview" style="margin-top:6px;">{{ saveBodyJsonText }}</pre>
-                        </el-collapse-item>
-                    </el-collapse>
-                </el-card>
-
-                <!-- ⑦ 试查 -->
-                <el-card shadow="never">
-                    <div class="section-title">⑦ 试查（不修改配置，仅调用业务查询接口）</div>
-                    <el-alert type="info" show-icon :closable="false"
-                              title="在下方填写条件值后点击执行试查。"/>
-                    <div class="muted" style="margin:10px 0 8px;">条件参数（根据配置生成）</div>
-                    <el-table :data="trialParams" border size="small" style="width:100%;margin-bottom:12px;">
-                        <el-table-column label="字段" width="180">
-                            <template #default="scope">
-                                <el-tag size="small">{{ scope.row.field || '-' }}</el-tag>
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="操作符" width="140">
-                            <template #default="scope">
-                                <el-tag size="small" type="info">{{ scope.row.op || '-' }}</el-tag>
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="字典绑定 dictType" width="200">
-                            <template #default="scope">
-                                <span>{{ scope.row.dict || '-' }}</span>
-                            </template>
-                        </el-table-column>
-                        <el-table-column label="值" min-width="240">
-                            <template #default="scope">
-                                <div v-if="scope.row.op === 'between'" style="display:flex;gap:8px;">
-                                    <el-input size="small" v-model="scope.row.valueFrom" placeholder="from" style="flex:1;" />
-                                    <el-input size="small" v-model="scope.row.valueTo" placeholder="to" style="flex:1;" />
-                                </div>
-                                <div v-else>
-                                    <el-select v-if="scope.row.dict" size="small"
-                                               v-model="scope.row.value" placeholder="选择 dictKey"
-                                               style="width:100%;">
-                                        <el-option v-for="item in (trialDictOptionsByType[scope.row.dict] || [])"
-                                                   :key="item.dictKey"
-                                                   :label="item.dictValue"
-                                                   :value="item.dictKey"/>
-                                    </el-select>
-                                    <el-input v-else size="small" v-model="scope.row.value" placeholder="输入值" />
-                                </div>
-                            </template>
-                        </el-table-column>
-                    </el-table>
-
-                    <el-space wrap>
-                        <el-button type="primary" :loading="trialLoading" @click="executeTrial">执行试查</el-button>
-                        <el-button @click="trialResultText=''">清空结果</el-button>
-                        <span style="color:#e6a23c;font-size:12px;" v-if="sqlForm.enabled === 0">当前配置已禁用，试查将失败。</span>
-                    </el-space>
-                    <div class="muted" style="margin:12px 0 6px;">试查结果</div>
-                    <pre class="json-preview">{{ trialResultText }}</pre>
-                </el-card>
-
+        <el-tab-pane label="③ Worker 运维" name="worker">
+            <el-space direction="vertical" :size="12" style="width:100%;" alignment="stretch">
+                <el-alert type="info" show-icon :closable="false" title="用于观察中间表消费状态，并手动触发一次 Worker。"/>
                 <el-space wrap>
-                    <el-button type="success" :loading="sqlSaving" @click="saveSqlConfig">保存配置</el-button>
-                    <el-button @click="resetSqlFormEmpty">清空表单</el-button>
-                    <el-button @click="activeTab = 'sql-list'">返回列表</el-button>
+                    <el-button type="primary" :loading="workerLoading" @click="loadWorkerStatus">刷新状态</el-button>
+                    <el-button type="success" :loading="workerRunLoading" @click="runWorkerOnce">手动执行一次</el-button>
+                    <el-switch v-model="workerAutoRefresh" active-text="自动刷新" inactive-text="手动刷新"/>
+                    <el-select v-model="workerAutoRefreshMs" style="width:140px" :disabled="!workerAutoRefresh">
+                        <el-option label="5秒" :value="5000"/>
+                        <el-option label="10秒" :value="10000"/>
+                        <el-option label="30秒" :value="30000"/>
+                    </el-select>
+                    <span class="muted">接口：GET /api/admin/worker/status，POST /api/admin/worker/run-once</span>
                 </el-space>
+                <el-space wrap>
+                    <el-select v-model="workerFailedTable" style="width:220px">
+                        <el-option label="interest_change_notify" value="interest"/>
+                        <el-option label="Middle_Insert_Records" value="daily"/>
+                        <el-option label="Middle_Installment_Records" value="installment"/>
+                    </el-select>
+                    <el-select v-model="workerFailedLimit" style="width:140px">
+                        <el-option label="10条" :value="10"/>
+                        <el-option label="20条" :value="20"/>
+                        <el-option label="50条" :value="50"/>
+                    </el-select>
+                    <el-button :loading="workerFailedLoading" @click="loadWorkerFailedSamples">加载失败样本</el-button>
+                    <el-button type="warning" :loading="workerResetLoading" @click="resetWorkerFailed">重置该表失败为待处理</el-button>
+                </el-space>
+
+                <el-row :gutter="12">
+                    <el-col :span="8">
+                        <el-card shadow="never">
+                            <div class="section-title">基础配置</div>
+                            <div class="muted">enabled：<el-tag size="small" :type="workerEnabledTagType">{{ workerStatus.enabled ? 'true' : 'false' }}</el-tag></div>
+                            <div class="muted" style="margin-top:8px;">batchSize：{{ workerStatus.batchSize ?? '-' }}</div>
+                            <div class="muted" style="margin-top:8px;">maxRetry：{{ workerStatus.maxRetry ?? '-' }}</div>
+                        </el-card>
+                    </el-col>
+                    <el-col :span="8">
+                        <el-card shadow="never">
+                            <div class="section-title">待处理数量</div>
+                            <div class="muted">interest_change_notify：{{ workerStatus.pendingInterest ?? 0 }}</div>
+                            <div class="muted" style="margin-top:8px;">Middle_Insert_Records：{{ workerStatus.pendingDaily ?? 0 }}</div>
+                            <div class="muted" style="margin-top:8px;">Middle_Installment_Records：{{ workerStatus.pendingInstallment ?? 0 }}</div>
+                            <div class="muted" style="margin-top:8px;">失败总量（interest/daily/installment）：{{ workerStatus.failedInterest ?? 0 }}/{{ workerStatus.failedDaily ?? 0 }}/{{ workerStatus.failedInstallment ?? 0 }}</div>
+                            <div class="muted" style="margin-top:8px;">重试上限命中（daily/installment）：{{ workerStatus.retryLimitHitDaily ?? 0 }}/{{ workerStatus.retryLimitHitInstallment ?? 0 }}</div>
+                        </el-card>
+                    </el-col>
+                    <el-col :span="8">
+                        <el-card shadow="never">
+                            <div class="section-title">上次执行概览</div>
+                            <div class="muted">elapsedMs：{{ (workerStatus.lastRun && workerStatus.lastRun.elapsedMs) ?? 0 }}</div>
+                            <div class="muted" style="margin-top:8px;">
+                                interest 成功/失败/跳过：
+                                {{ (workerStatus.lastRun && workerStatus.lastRun.interestSuccess) ?? 0 }}/{{ (workerStatus.lastRun && workerStatus.lastRun.interestFail) ?? 0 }}/{{ (workerStatus.lastRun && workerStatus.lastRun.interestSkippedByRetryLimit) ?? 0 }}
+                            </div>
+                            <div class="muted" style="margin-top:8px;">
+                                daily 成功/失败/跳过：
+                                {{ (workerStatus.lastRun && workerStatus.lastRun.dailySuccess) ?? 0 }}/{{ (workerStatus.lastRun && workerStatus.lastRun.dailyFail) ?? 0 }}/{{ (workerStatus.lastRun && workerStatus.lastRun.dailySkippedByRetryLimit) ?? 0 }}
+                            </div>
+                            <div class="muted" style="margin-top:8px;">
+                                installment 成功/失败/跳过：
+                                {{ (workerStatus.lastRun && workerStatus.lastRun.installmentSuccess) ?? 0 }}/{{ (workerStatus.lastRun && workerStatus.lastRun.installmentFail) ?? 0 }}/{{ (workerStatus.lastRun && workerStatus.lastRun.installmentSkippedByRetryLimit) ?? 0 }}
+                            </div>
+                        </el-card>
+                    </el-col>
+                </el-row>
+
+                <el-card shadow="never">
+                    <div class="section-title">失败记录样本（{{ workerFailedTable }}）</div>
+                    <el-table :data="workerFailedSamples" border stripe size="small" style="width:100%;">
+                        <el-table-column prop="id" label="id" width="90"/>
+                        <el-table-column prop="target_table_id" label="target_table_id / source_id" min-width="150">
+                            <template #default="scope">{{ scope.row.target_table_id || scope.row.source_id || '-' }}</template>
+                        </el-table-column>
+                        <el-table-column prop="monitored_field" label="monitored_field / bill_no" min-width="220" show-overflow-tooltip>
+                            <template #default="scope">{{ scope.row.monitored_field || scope.row.bill_no || '-' }}</template>
+                        </el-table-column>
+                        <el-table-column prop="retry_count" label="retry" width="90"/>
+                        <el-table-column prop="fail_reason" label="fail_reason" min-width="220" show-overflow-tooltip/>
+                        <el-table-column prop="process_time" label="process_time" width="180" show-overflow-tooltip/>
+                    </el-table>
+                </el-card>
+
+                <el-card shadow="never">
+                    <div class="section-title">状态原始 JSON</div>
+                    <pre class="json-preview">{{ workerStatusText }}</pre>
+                </el-card>
             </el-space>
         </el-tab-pane>
     </el-tabs>
+
+    <el-drawer v-model="sqlEditOpen" :title="sqlEditTitle" size="72%" :with-header="true" :destroy-on-close="false" :before-close="handleSqlEditBeforeClose">
+        <div style="position:sticky;top:0;z-index:10;background:#fff;padding:10px 0 12px;border-bottom:1px solid #ebeef5;margin-bottom:12px;">
+            <el-space wrap>
+                <el-button type="success" :loading="sqlSaving" @click="saveSqlConfig">保存</el-button>
+                <el-button type="primary" :loading="trialLoading" @click="executeTrial">试查</el-button>
+                <el-button @click="closeSqlEditWithConfirm">关闭</el-button>
+                <el-tag v-if="sqlDirty" type="warning" size="small">未保存</el-tag>
+                <span class="muted" v-if="sqlForm.enabled === 0">当前规则已禁用，试查会失败</span>
+            </el-space>
+        </div>
+        <el-space direction="vertical" :size="16" style="width:100%;" alignment="stretch">
+            <el-alert type="success" show-icon :closable="false"
+                      title="Query Builder：通过白名单表/字段与字典绑定生成条件。"/>
+
+            <el-card shadow="never">
+                <div class="section-title">① 基本信息</div>
+                <el-form label-width="100px" style="max-width:640px;">
+                    <el-form-item label="sql_key" required>
+                        <el-input v-model="sqlForm.sqlKey" placeholder="唯一标识，全局不可重复"/>
+                    </el-form-item>
+                    <el-form-item label="名称">
+                        <el-input v-model="sqlForm.remark" placeholder="展示用名称，写入 remark 字段"/>
+                    </el-form-item>
+                    <el-form-item label="启用/禁用">
+                        <el-switch v-model="sqlForm.enabled" :active-value="1" :inactive-value="0"
+                                   active-text="启用" inactive-text="禁用"/>
+                    </el-form-item>
+                </el-form>
+            </el-card>
+
+            <el-card shadow="never">
+                <div class="section-title">② 表选择</div>
+                <el-space wrap>
+                    <el-select v-model="sqlForm.baseTable" filterable placeholder="选择表"
+                               style="width:420px" @change="onTableChanged">
+                        <el-option v-for="t in tableOptions" :key="t" :label="t" :value="t"/>
+                    </el-select>
+                    <el-button type="primary" :loading="tablesLoading" @click="loadTables">加载表列表</el-button>
+                </el-space>
+                <p class="muted mb-12">切换表会清空：已选字段、条件、排序，并重新拉列。</p>
+            </el-card>
+
+            <el-card shadow="never">
+                <div class="section-title">③ 可查询字段</div>
+                <el-button type="primary" link :loading="colsLoading" :disabled="!sqlForm.baseTable" @click="loadColumns">
+                    加载可查询字段
+                </el-button>
+                <div v-if="!sqlForm.baseTable" class="muted">请先选择表</div>
+                <el-checkbox-group v-else v-model="sqlForm.selectedFields" class="mb-12"
+                                   style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+                    <el-checkbox v-for="c in columnOptions" :key="c" :label="c">{{ c }}</el-checkbox>
+                </el-checkbox-group>
+            </el-card>
+
+            <el-card shadow="never">
+                <div class="section-title">④ 查询条件</div>
+                <el-button type="primary" link :disabled="sqlForm.selectedFields.length===0" @click="addCondRow">添加条件</el-button>
+                <span v-if="sqlForm.selectedFields.length===0" class="muted">请先勾选可查询字段</span>
+                <el-table :data="sqlForm.conditions" border size="small" style="width:100%;margin-top:8px;">
+                    <el-table-column label="字段" width="220">
+                        <template #default="scope">
+                            <el-select v-model="scope.row.field" filterable placeholder="必选" style="width:100%">
+                                <el-option v-for="f in sqlForm.selectedFields" :key="f" :label="f" :value="f"/>
+                            </el-select>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="操作符" width="150">
+                        <template #default="scope">
+                            <el-select v-model="scope.row.op" style="width:100%">
+                                <el-option label="等于 eq" value="eq"/>
+                                <el-option label="模糊 like" value="like"/>
+                                <el-option label="范围 between" value="between"/>
+                            </el-select>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="绑定字典 dictType" min-width="200">
+                        <template #default="scope">
+                            <el-select v-model="scope.row.dict" filterable clearable placeholder="选择 dictType"
+                                       style="width:100%">
+                                <el-option v-for="dt in dictTypes" :key="dt" :label="dt" :value="dt"/>
+                            </el-select>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="72" fixed="right">
+                        <template #default="scope">
+                            <el-button type="danger" link @click="removeCondRow(scope.$index)">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-card>
+
+            <el-card shadow="never">
+                <div class="section-title">⑤ 排序</div>
+                <el-form inline>
+                    <el-form-item label="排序字段">
+                        <el-select v-model="sqlForm.sortField" filterable clearable placeholder="从已选字段中选"
+                                   style="width:220px" :disabled="sqlForm.selectedFields.length===0">
+                            <el-option v-for="f in sqlForm.selectedFields" :key="f" :label="f" :value="f"/>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="方向">
+                        <el-select v-model="sqlForm.sortDir" style="width:120px">
+                            <el-option label="升序 ASC" value="ASC"/>
+                            <el-option label="降序 DESC" value="DESC"/>
+                        </el-select>
+                    </el-form-item>
+                </el-form>
+            </el-card>
+
+            <el-card shadow="never">
+                <div class="section-title">⑥ 预览</div>
+                <el-collapse>
+                    <el-collapse-item title="逻辑配置（易读）" name="logic">
+                        <pre class="json-preview" style="margin-top:6px;">{{ logicalJsonText }}</pre>
+                    </el-collapse-item>
+                    <el-collapse-item title="保存请求体（驼峰）" name="body">
+                        <pre class="json-preview" style="margin-top:6px;">{{ saveBodyJsonText }}</pre>
+                    </el-collapse-item>
+                </el-collapse>
+            </el-card>
+
+            <el-card shadow="never">
+                <el-collapse v-model="sqlEditCollapseActive">
+                    <el-collapse-item title="⑦ 试查（默认收起）" name="trial">
+                        <el-alert type="info" show-icon :closable="false" title="填写条件值后可执行试查（不影响保存配置）。"/>
+                        <div class="muted" style="margin:10px 0 8px;">条件参数（根据配置生成）</div>
+                        <el-table :data="trialParams" border size="small" style="width:100%;margin-bottom:12px;">
+                            <el-table-column label="字段" width="180">
+                                <template #default="scope">
+                                    <el-tag size="small">{{ scope.row.field || '-' }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作符" width="140">
+                                <template #default="scope">
+                                    <el-tag size="small" type="info">{{ scope.row.op || '-' }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="字典绑定 dictType" width="200">
+                                <template #default="scope">
+                                    <span>{{ scope.row.dict || '-' }}</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="值" min-width="240">
+                                <template #default="scope">
+                                    <div v-if="scope.row.op === 'between'" style="display:flex;gap:8px;">
+                                        <el-input size="small" v-model="scope.row.valueFrom" placeholder="from" style="flex:1;" />
+                                        <el-input size="small" v-model="scope.row.valueTo" placeholder="to" style="flex:1;" />
+                                    </div>
+                                    <div v-else>
+                                        <el-select v-if="scope.row.dict" size="small"
+                                                   v-model="scope.row.value" placeholder="选择 dictKey"
+                                                   style="width:100%;">
+                                            <el-option v-for="item in (trialDictOptionsByType[scope.row.dict] || [])"
+                                                       :key="item.dictKey"
+                                                       :label="item.dictValue"
+                                                       :value="item.dictKey"/>
+                                        </el-select>
+                                        <el-input v-else size="small" v-model="scope.row.value" placeholder="输入值" />
+                                    </div>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+
+                        <el-space wrap>
+                            <el-button type="primary" :loading="trialLoading" @click="executeTrial">执行试查</el-button>
+                            <el-button @click="trialResultText=''">清空结果</el-button>
+                        </el-space>
+                        <div class="muted" style="margin:12px 0 6px;">试查结果</div>
+                        <pre class="json-preview">{{ trialResultText }}</pre>
+                    </el-collapse-item>
+                </el-collapse>
+            </el-card>
+        </el-space>
+    </el-drawer>
 </div>
 
 <script>
@@ -442,6 +539,10 @@
         sqlDelete: (k) => '/api/admin/sql-config/' + encodeURIComponent(k),
         configExport: '/api/admin/config/export',
         configImport: '/api/admin/config/import',
+        workerStatus: '/api/admin/worker/status',
+        workerRunOnce: '/api/admin/worker/run-once',
+        workerFailedSamples: (table, limit) => '/api/admin/worker/failed-samples?table=' + encodeURIComponent(table) + '&limit=' + encodeURIComponent(limit),
+        workerResetFailed: '/api/admin/worker/reset-failed',
         querySql: (k) => '/api/query/' + encodeURIComponent(k),
         dictByType: (t) => '/api/dict/' + encodeURIComponent(t),
         schemaTables: '/api/admin/schema/tables',
@@ -471,6 +572,9 @@
                     const sqlBaseTableFilter = ref('');
                     const sqlDetailOpen = ref(false);
                     const sqlDetailRow = ref(null);
+            const sqlEditOpen = ref(false);
+            const sqlEditTitle = ref('SQL 规则编辑');
+            const sqlEditCollapseActive = ref([]); // 默认收起
             const sqlPage = ref(1);
             const sqlPageSize = ref(10);
             const tableOptions = ref([]);
@@ -481,6 +585,17 @@
             const trialLoading = ref(false);
             const trialResultText = ref(''); // 展示试查返回内容（JSON）
             const trialDictOptionsByType = reactive({});
+            const workerLoading = ref(false);
+            const workerRunLoading = ref(false);
+            const workerStatus = ref({});
+            const workerAutoRefresh = ref(true);
+            const workerAutoRefreshMs = ref(10000);
+            const workerTimer = ref(null);
+            const workerFailedTable = ref('daily');
+            const workerFailedLimit = ref(20);
+            const workerFailedLoading = ref(false);
+            const workerResetLoading = ref(false);
+            const workerFailedSamples = ref([]);
 
             const sqlForm = reactive({
                 sqlKey: '',
@@ -495,6 +610,99 @@
 
             const trialParams = ref([]);
             const sqlEditingOriginal = ref(null); // 用于保存时输出变更摘要（前端展示）
+            const dictTypeUsedBySqlKeys = computed(() => {
+                const map = {};
+                const rows = sqlConfigRows.value || [];
+                for (const r of rows) {
+                    if (!r || !r.sqlKey) continue;
+                    let condArr = [];
+                    try {
+                        condArr = JSON.parse(r.conditionFields || '[]');
+                    } catch (e) {
+                        condArr = [];
+                    }
+                    for (const c of (condArr || [])) {
+                        const dt = c && c.dict != null ? String(c.dict).trim() : '';
+                        if (!dt) continue;
+                        if (!map[dt]) map[dt] = [];
+                        if (!map[dt].includes(r.sqlKey)) {
+                            map[dt].push(r.sqlKey);
+                        }
+                    }
+                }
+                return map;
+            });
+
+            // SQL 列表筛选/分页记忆（localStorage）
+            const SQL_LIST_STATE_KEY = 'fact_admin_sql_list_state_v1';
+            function loadSqlListState() {
+                try {
+                    const raw = localStorage.getItem(SQL_LIST_STATE_KEY);
+                    if (!raw) return;
+                    const s = JSON.parse(raw);
+                    if (s && typeof s === 'object') {
+                        if (typeof s.kw === 'string') sqlListKeyword.value = s.kw;
+                        if (s.enabled === 0 || s.enabled === 1 || s.enabled === '' || s.enabled == null) sqlEnabledFilter.value = s.enabled;
+                        if (typeof s.baseTable === 'string') sqlBaseTableFilter.value = s.baseTable;
+                        if (typeof s.pageSize === 'number' && s.pageSize > 0) sqlPageSize.value = s.pageSize;
+                    }
+                } catch (e) {
+                }
+            }
+            function saveSqlListState() {
+                try {
+                    localStorage.setItem(SQL_LIST_STATE_KEY, JSON.stringify({
+                        kw: sqlListKeyword.value || '',
+                        enabled: sqlEnabledFilter.value,
+                        baseTable: sqlBaseTableFilter.value || '',
+                        pageSize: sqlPageSize.value
+                    }));
+                } catch (e) {
+                }
+            }
+
+            // SQL 编辑抽屉未保存拦截
+            const sqlDirty = ref(false);
+            const sqlSnapshotJson = ref('');
+            function snapshotSqlForm() {
+                try {
+                    sqlSnapshotJson.value = JSON.stringify(buildSaveBody());
+                    sqlDirty.value = false;
+                } catch (e) {
+                    sqlSnapshotJson.value = '';
+                    sqlDirty.value = false;
+                }
+            }
+            watch(
+                () => [sqlForm.sqlKey, sqlForm.baseTable, sqlForm.enabled, sqlForm.remark, sqlForm.sortField, sqlForm.sortDir, sqlForm.selectedFields, sqlForm.conditions],
+                () => {
+                    if (!sqlEditOpen.value) return;
+                    try {
+                        const cur = JSON.stringify(buildSaveBody());
+                        sqlDirty.value = cur !== (sqlSnapshotJson.value || '');
+                    } catch (e) {
+                        sqlDirty.value = true;
+                    }
+                },
+                { deep: true }
+            );
+            async function closeSqlEditWithConfirm() {
+                if (!sqlDirty.value) {
+                    sqlEditOpen.value = false;
+                    return true;
+                }
+                try {
+                    await ElementPlus.ElMessageBox.confirm('SQL 规则存在未保存修改，确定关闭？', '未保存修改', { type: 'warning' });
+                    sqlEditOpen.value = false;
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            }
+            async function handleSqlEditBeforeClose(done) {
+                const ok = await closeSqlEditWithConfirm();
+                if (ok) done();
+            }
 
             async function apiGet(url) {
                 const r = await fetch(url);
@@ -1019,10 +1227,16 @@
 
             watch(sqlListKeyword, () => {
                 sqlPage.value = 1;
+                saveSqlListState();
             });
 
             watch([sqlEnabledFilter, sqlBaseTableFilter], () => {
                 sqlPage.value = 1;
+                saveSqlListState();
+            });
+
+            watch(sqlPageSize, () => {
+                saveSqlListState();
             });
 
             const sqlBaseTableOptions = computed(() => {
@@ -1100,6 +1314,102 @@
                 }));
             }
 
+            const workerEnabledTagType = computed(() => workerStatus.value && workerStatus.value.enabled ? 'success' : 'danger');
+            const workerStatusText = computed(() => {
+                try {
+                    return JSON.stringify(workerStatus.value || {}, null, 2);
+                } catch (e) {
+                    return String(e);
+                }
+            });
+
+            async function loadWorkerStatus() {
+                workerLoading.value = true;
+                try {
+                    const res = await apiGet(API.workerStatus);
+                    if (!res.success) {
+                        ElementPlus.ElMessage.error(res.message || '加载 Worker 状态失败');
+                        return;
+                    }
+                    workerStatus.value = res.data || {};
+                } finally {
+                    workerLoading.value = false;
+                }
+            }
+
+            async function runWorkerOnce() {
+                workerRunLoading.value = true;
+                try {
+                    const res = await apiPost(API.workerRunOnce, {});
+                    if (!res.success) {
+                        ElementPlus.ElMessage.error(res.message || '执行 Worker 失败');
+                        return;
+                    }
+                    ElementPlus.ElMessage.success('Worker 已执行一次');
+                    await loadWorkerStatus();
+                } finally {
+                    workerRunLoading.value = false;
+                }
+            }
+
+            async function loadWorkerFailedSamples() {
+                workerFailedLoading.value = true;
+                try {
+                    const res = await apiGet(API.workerFailedSamples(workerFailedTable.value, workerFailedLimit.value));
+                    if (!res.success) {
+                        ElementPlus.ElMessage.error(res.message || '加载失败样本失败');
+                        return;
+                    }
+                    workerFailedSamples.value = Array.isArray(res.data) ? res.data : [];
+                } finally {
+                    workerFailedLoading.value = false;
+                }
+            }
+
+            async function resetWorkerFailed() {
+                try {
+                    await ElementPlus.ElMessageBox.confirm(
+                        '确定将 ' + workerFailedTable.value + ' 的失败记录重置为待处理？',
+                        '确认重置',
+                        { type: 'warning' }
+                    );
+                } catch (e) {
+                    return;
+                }
+                workerResetLoading.value = true;
+                try {
+                    const res = await apiPost(API.workerResetFailed, { table: workerFailedTable.value });
+                    if (!res.success) {
+                        ElementPlus.ElMessage.error(res.message || '重置失败');
+                        return;
+                    }
+                    const affected = res.data && res.data.affected != null ? res.data.affected : 0;
+                    ElementPlus.ElMessage.success('已重置 ' + affected + ' 条');
+                    await loadWorkerStatus();
+                    await loadWorkerFailedSamples();
+                } finally {
+                    workerResetLoading.value = false;
+                }
+            }
+
+            function stopWorkerAutoRefresh() {
+                if (workerTimer.value) {
+                    clearInterval(workerTimer.value);
+                    workerTimer.value = null;
+                }
+            }
+
+            function startWorkerAutoRefresh() {
+                stopWorkerAutoRefresh();
+                if (!workerAutoRefresh.value) return;
+                const ms = Number(workerAutoRefreshMs.value) > 0 ? Number(workerAutoRefreshMs.value) : 10000;
+                workerTimer.value = setInterval(() => {
+                    if (activeTab.value === 'worker') {
+                        loadWorkerStatus();
+                    }
+                }, ms);
+            }
+
             function openSqlDetail(row) {
                 if (!row) return;
                 sqlDetailRow.value = row;
@@ -1108,9 +1418,21 @@
 
             async function toggleSqlEnabled(row) {
                 if (!row || !row.sqlKey) return;
-                await editSqlConfig(row);
-                sqlForm.enabled = sqlForm.enabled === 0 ? 1 : 0;
-                await saveSqlConfig();
+                // 快速切换：不打开编辑抽屉，直接读取单条并保存 enabled
+                const res = await apiGet(API.sqlOne(row.sqlKey));
+                if (!res.success || !res.data) {
+                    ElementPlus.ElMessage.error(res.message || '加载配置失败');
+                    return;
+                }
+                const c = res.data;
+                c.enabled = (c.enabled == null ? 1 : c.enabled) === 0 ? 1 : 0;
+                const saveRes = await apiPost(API.sqlSave, c);
+                if (saveRes && saveRes.success) {
+                    ElementPlus.ElMessage.success('已' + (c.enabled === 0 ? '禁用' : '启用') + '：' + row.sqlKey);
+                    await loadSqlConfigList();
+                } else {
+                    ElementPlus.ElMessage.error((saveRes && saveRes.message) ? saveRes.message : '保存失败');
+                }
             }
 
             async function exportConfig() {
@@ -1189,13 +1511,23 @@
 
             function goNewSqlConfig() {
                 resetSqlFormEmpty();
-                activeTab.value = 'sql-edit';
+                sqlEditTitle.value = '新建 SQL 规则';
+                sqlEditOpen.value = true;
+                snapshotSqlForm();
+                if (tableOptions.value.length === 0) {
+                    loadTables();
+                }
+                loadDictTypes();
                 ElementPlus.ElMessage.info('已清空表单，请从选择表开始配置');
             }
 
             async function editSqlConfig(row) {
                 if (!row || !row.sqlKey) return;
-                activeTab.value = 'sql-edit';
+                sqlEditTitle.value = '编辑 SQL 规则：' + row.sqlKey;
+                sqlEditOpen.value = true;
+                if (tableOptions.value.length === 0) {
+                    loadTables();
+                }
                 const res = await apiGet(API.sqlOne(row.sqlKey));
                 if (!res.success || !res.data) {
                     ElementPlus.ElMessage.error(res.message || '加载配置失败');
@@ -1259,6 +1591,7 @@
                     await loadColumns();
                 }
                 await loadDictTypes();
+                snapshotSqlForm();
                 ElementPlus.ElMessage.success('已载入：' + row.sqlKey);
             }
 
@@ -1321,6 +1654,7 @@
                         }
                         ElementPlus.ElMessage.success(detail);
                         await loadSqlConfigList();
+                        snapshotSqlForm();
                     } else {
                         ElementPlus.ElMessage.error(res.message || '保存失败');
                     }
@@ -1341,11 +1675,9 @@
                 if (name === 'sql-list') {
                     loadSqlConfigList();
                 }
-                if (name === 'sql-edit') {
-                    loadDictTypes();
-                    if (tableOptions.value.length === 0) {
-                        loadTables();
-                    }
+                if (name === 'worker') {
+                    loadWorkerStatus();
+                    loadWorkerFailedSamples();
                 }
             }
 
@@ -1356,10 +1688,19 @@
                         e.returnValue = '';
                     }
                 });
+                loadSqlListState();
                 await loadDict();
                 await loadTables();
                 await loadSqlConfigList();
                 await loadDictTypes();
+                startWorkerAutoRefresh();
+            });
+
+            watch(workerAutoRefresh, () => {
+                startWorkerAutoRefresh();
+            });
+            watch(workerAutoRefreshMs, () => {
+                startWorkerAutoRefresh();
             });
 
             return {
@@ -1367,6 +1708,7 @@
                 onTabChange,
                 dictRows, dictRowsFiltered, dictKeyword, dictViewType, dictSaving, loadDict, loadDictWithConfirm, addDictRow, removeDictRow, saveDict,
                 dictDirty,
+                dictTypeUsedBySqlKeys,
                 dictTypes,
                 dictExcelType,
                 exportDictExcel, openDictImportDialog, onDictImportFileChange,
@@ -1377,6 +1719,9 @@
                 sqlConfigRows, sqlListKeyword, sqlConfigRowsFiltered,
                 sqlEnabledFilter, sqlBaseTableFilter, sqlBaseTableOptions,
                 sqlDetailOpen, sqlDetailRow,
+                sqlEditOpen, sqlEditTitle,
+                sqlEditCollapseActive,
+                sqlDirty, closeSqlEditWithConfirm, handleSqlEditBeforeClose,
                 sqlConfigRowsPaged, sqlPage, sqlPageSize,
                 loadSqlConfigList, goNewSqlConfig, editSqlConfig, deleteSqlConfigRow,
                 toggleSqlEnabled, openSqlDetail, safePrettyJson,
@@ -1387,7 +1732,13 @@
                 resetSqlFormEmpty,
                 logicalJsonText, saveBodyJsonText,
                 trialLoading, trialResultText, trialDictOptionsByType, executeTrial,
-                trialParams
+                trialParams,
+                workerLoading, workerRunLoading, workerStatus,
+                workerEnabledTagType, workerStatusText,
+                workerAutoRefresh, workerAutoRefreshMs,
+                loadWorkerStatus, runWorkerOnce,
+                workerFailedTable, workerFailedLimit, workerFailedLoading, workerResetLoading, workerFailedSamples,
+                loadWorkerFailedSamples, resetWorkerFailed
             };
         }
     }).use(ElementPlus).mount('#app');

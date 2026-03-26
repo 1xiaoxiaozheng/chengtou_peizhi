@@ -32,6 +32,22 @@ public interface InterestNotifyMapper extends BaseMapper<InterestChangeNotify> {
         @Select("SELECT * FROM interest_change_notify WHERE process_status = 0 ORDER BY create_time ASC")
         List<InterestChangeNotify> getStatusNot();
 
+        @Select("SELECT TOP (${limit}) * FROM interest_change_notify WHERE process_status = 0 ORDER BY create_time ASC")
+        List<InterestChangeNotify> getStatusNotLimit(@Param("limit") Integer limit);
+
+        @Select("SELECT COUNT(1) FROM interest_change_notify WHERE process_status = 0")
+        Integer countPending();
+
+        @Select("SELECT TOP (${limit}) id, source_id, bill_no, current_rate, rate_effective_time, create_time " +
+                        "FROM interest_change_notify WHERE process_status = 2 ORDER BY create_time DESC, id DESC")
+        List<Map<String, Object>> listFailedSamples(@Param("limit") Integer limit);
+
+        @Select("SELECT COUNT(1) FROM interest_change_notify WHERE process_status = 2")
+        Integer countFailed();
+
+        @Update("UPDATE interest_change_notify SET process_status = 0 WHERE process_status = 2")
+        int resetFailedToPending();
+
         /**
          * 更新处理状态为已处理
          * 

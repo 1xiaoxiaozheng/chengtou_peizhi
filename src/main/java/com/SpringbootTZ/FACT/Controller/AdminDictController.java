@@ -434,7 +434,7 @@ public class AdminDictController {
 
             List<SysDict> existing = configFileRepository.getDictByType(dt);
             Set<String> existingKeys = new HashSet<>();
-            for (SysDict d : existing == null ? new ArrayList<>() : existing) {
+            for (SysDict d : (existing == null ? java.util.Collections.<SysDict>emptyList() : existing)) {
                 if (d != null && d.getDictKey() != null && !d.getDictKey().trim().isEmpty()) {
                     existingKeys.add(d.getDictKey().trim());
                 }
