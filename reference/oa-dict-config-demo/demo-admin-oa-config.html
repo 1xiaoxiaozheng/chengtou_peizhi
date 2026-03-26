@@ -39,223 +39,118 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>按日还款计划 · 数据库表名与字段配置</h1>
-<!--    <div class="purpose">-->
-<!--      <strong>运维怎么用？</strong>-->
-<!--      下面只有<strong>四项固定配置</strong>（程序里写死的 <code>config_key</code>），您<strong>不用也不允许改键名</strong>，只需填写<strong>表名</strong>或<strong>字段名</strong>（<code>config_value</code>），必要时改「说明」（<code>config_name</code>）。-->
-<!--      数据写入库表 <code>oa_dict_config</code>，保存后下次定时任务会读到新值。-->
-<!--    </div>-->
-<!--    <p class="hint">-->
-<!--      演示路径：<code>reference/oa-dict-config-demo/demo-admin-oa-config.html</code>；并入工程后建议放 <code>static/</code> 同源访问。接口：<code>/api/admin/oa-dict-config</code>。-->
-<!--    </p>-->
+<div class="wrap">
+  <h1>按日还款计划 · 数据库表名与字段配置</h1>
+  <div id="msg" class="msg"></div>
 
-    <div id="msg" class="msg"></div>
-
-    <div class="card">
-      <div class="row">
-        <label for="baseUrl">API 根地址</label>
-        <input type="text" id="baseUrl" placeholder="留空=与当前页面同源；file 打开时请填 http://主机:端口" />
-      </div>
-      <div class="row">
-        <button type="button" class="default" id="btnLoad">重新加载</button>
-        <button type="button" class="primary" id="btnSave">保存到数据库</button>
-      </div>
+  <div class="card">
+    <div class="row">
+      <label for="baseUrl">API 根地址</label>
+      <input type="text" id="baseUrl" placeholder="留空=与当前页面同源；file 打开时请填 http://主机:端口" />
     </div>
-
-    <div class="card">
-      <table>
-        <thead>
-          <tr>
-            <th class="num">ID</th>
-            <th style="min-width:200px">配置项（键名由系统固定）</th>
-            <th>数据库表名 / 字段名（请填写）</th>
-            <th>说明（可改）</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+    <div class="row">
+      <button type="button" class="default" id="btnLoad">重新加载</button>
+      <button type="button" class="primary" id="btnSave">保存到数据库</button>
     </div>
   </div>
 
-  <script>
-    /**
-     * config_key 与后端 DailyNotify 约定一致，写死在前端，避免运维填错键。
-     */
-    var FIXED_DEFINITIONS = [
-      {
-        configKey: 'middle.insert.table',
-        title: '中间表',
-        hint: '按日还款计划表模拟付息和计划还本更新监听触发器写入的中间表',
-        defaultName: '中间表名',
-        valuePlaceholder: '如 Middle_Insert_Records'
-      },
-      {
-        configKey: 'oa.plan.detail.table',
-        title: '按日计划 · 明细表',
-        hint: 'OA按日还款计划表的还款明细表（下柜、还本、付息等）',
-        defaultName: '按日还款计划表明细表',
-        valuePlaceholder: '如 formson_0030'
-      },
-      {
-        configKey: 'oa.plan.main.table',
-        title: '按日计划 · 主表',
-        hint: 'OA按日还款计划表主表表名(合同编号、贷款开始时间、贷款结束时间等)',
-        defaultName: '按日还款计划表主表',
-        valuePlaceholder: '如 formmain_0029'
-      },
-      {
-        configKey: 'oa.plan.serial.field',
-        title: '主表 · 单据编号字段',
-        hint: '主表上流水号/单据编号字段名',
-        defaultName: '主表单据编号字段',
-        valuePlaceholder: '如 field0001'
-      }
-    ];
+  <div class="card">
+    <table>
+      <thead>
+      <tr>
+        <th class="num">ID</th>
+        <th style="min-width:200px">配置项（键名由系统固定）</th>
+        <th>数据库表名 / 字段名（请填写）</th>
+        <th>说明（可改）</th>
+      </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
 
-    function apiBase() {
-      var v = document.getElementById('baseUrl').value.trim();
-      return v ? v.replace(/\/$/, '') : '';
-    }
+<script>
+  var FIXED_DEFINITIONS = [
+    { configKey: 'middle.insert.table', title: '中间表', hint: '按日还款计划表模拟付息和计划还本更新监听触发器写入的中间表', defaultName: '中间表名', valuePlaceholder: '如 Middle_Insert_Records' },
+    { configKey: 'oa.plan.detail.table', title: '按日计划 · 明细表', hint: 'OA按日还款计划表的还款明细表（下柜、还本、付息等）', defaultName: '按日还款计划表明细表', valuePlaceholder: '如 formson_0030' },
+    { configKey: 'oa.plan.main.table', title: '按日计划 · 主表', hint: 'OA按日还款计划表主表表名(合同编号、贷款开始时间、贷款结束时间等)', defaultName: '按日还款计划表主表', valuePlaceholder: '如 formmain_0029' },
+    { configKey: 'oa.plan.serial.field', title: '主表 · 单据编号字段', hint: '主表上流水号/单据编号字段名', defaultName: '主表单据编号字段', valuePlaceholder: '如 field0001' },
 
-    function showMsg(text, ok) {
-      var el = document.getElementById('msg');
-      el.textContent = text;
-      el.className = 'msg show ' + (ok ? 'ok' : 'err');
-    }
+    { configKey: 'oa.plan.field.is.add.detail', title: '主表 · 是否添加明细表', hint: '主表是否已生成明细表日期标记', defaultName: '是否添加明细表日期', valuePlaceholder: 'field0061' },
+    { configKey: 'oa.plan.field.start.date', title: '主表 · 开始日期', hint: '贷款开始日期', defaultName: '开始日期', valuePlaceholder: 'field0059' },
+    { configKey: 'oa.plan.field.end.date', title: '主表 · 结束日期', hint: '贷款结束日期', defaultName: '结束日期', valuePlaceholder: 'field0060' },
+    { configKey: 'oa.plan.field.rate', title: '主表 · 最新利率', hint: '当前执行利率', defaultName: '最新利率', valuePlaceholder: 'field0042' },
+    { configKey: 'oa.plan.field.total.disburse', title: '主表 · 下柜资金合计', hint: '下柜总金额', defaultName: '下柜资金合计', valuePlaceholder: 'field0034' },
+    { configKey: 'oa.plan.field.total.balance', title: '主表 · 贷款余额合计', hint: '剩余贷款总额', defaultName: '贷款余额合计', valuePlaceholder: 'field0035' },
+    { configKey: 'oa.plan.field.total.principal', title: '主表 · 还本合计', hint: '累计已还本', defaultName: '还本合计', valuePlaceholder: 'field0036' },
+    { configKey: 'oa.plan.field.total.interest', title: '主表 · 付息合计', hint: '累计已付息', defaultName: '付息合计', valuePlaceholder: 'field0037' },
 
-    function hideMsg() {
-      var el = document.getElementById('msg');
-      el.className = 'msg';
-      el.textContent = '';
-    }
+    { configKey: 'oa.plan.field.seq1', title: '明细表 · 序号1', hint: '明细表行号', defaultName: '序号1', valuePlaceholder: 'field0025' },
+    { configKey: 'oa.plan.field.date', title: '明细表 · 日期', hint: '还款/下柜日期', defaultName: '时间/日期', valuePlaceholder: 'field0026' },
+    { configKey: 'oa.plan.field.disburse', title: '明细表 · 下柜资金', hint: '当日下柜金额', defaultName: '下柜资金', valuePlaceholder: 'field0027' },
+    { configKey: 'oa.plan.field.balance', title: '明细表 · 贷款余额', hint: '当日剩余贷款', defaultName: '贷款余额', valuePlaceholder: 'field0028' },
+    { configKey: 'oa.plan.field.principal', title: '明细表 · 还本', hint: '当日还本金额', defaultName: '还本', valuePlaceholder: 'field0029' },
+    { configKey: 'oa.plan.field.interest', title: '明细表 · 付息', hint: '当日付息金额', defaultName: '付息', valuePlaceholder: 'field0030' },
+    { configKey: 'oa.plan.field.remark', title: '明细表 · 备注', hint: '还款备注', defaultName: '备注-还款计划', valuePlaceholder: 'field0031' },
+    { configKey: 'oa.plan.field.simulate.interest', title: '明细表 · 模拟付息', hint: '与付息一致', defaultName: '模拟付息', valuePlaceholder: 'field0033' }
+  ];
 
-    /** 每项：id, configKey, title, hint, configValue, configName, defaultName, valuePlaceholder */
-    var rows = [];
+  function apiBase() { var v = document.getElementById('baseUrl').value.trim(); return v ? v.replace(/\/$/, '') : ''; }
+  function showMsg(text, ok) { var el = document.getElementById('msg'); el.textContent = text; el.className = 'msg show ' + (ok ? 'ok' : 'err'); }
+  function hideMsg() { var el = document.getElementById('msg'); el.className = 'msg'; el.textContent = ''; }
+  var rows = [];
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 
-    function esc(s) {
-      return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/</g, '&lt;');
-    }
-
-    function render() {
-      var tb = document.getElementById('tbody');
-      tb.innerHTML = '';
-      rows.forEach(function (r, idx) {
-        var tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td class="num">' + (r.id != null ? r.id : '—') + '</td>' +
-          '<td class="keycell">' +
-            '<div class="k-title">' + esc(r.title) + '</div>' +
-            '<div class="k-code">系统键名 <code>' + esc(r.configKey) + '</code>（不可改）</div>' +
-            '<div class="k-lock">' + esc(r.hint) + '</div>' +
-          '</td>' +
-          '<td><input type="text" data-f="configValue" data-i="' + idx + '" placeholder="' + esc(r.valuePlaceholder) + '" value="' + esc(r.configValue || '') + '" /></td>' +
-          '<td><input type="text" data-f="configName" data-i="' + idx + '" placeholder="' + esc(r.defaultName) + '" value="' + esc(r.configName || '') + '" /></td>';
-        tb.appendChild(tr);
+  function render() {
+    var tb = document.getElementById('tbody'); tb.innerHTML = '';
+    rows.forEach(function (r, idx) {
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="num">' + (r.id != null ? r.id : '—') + '</td>' +
+        '<td class="keycell"><div class="k-title">' + esc(r.title) + '</div><div class="k-code">系统键名 <code>' + esc(r.configKey) + '</code></div><div class="k-lock">' + esc(r.hint) + '</div></td>' +
+        '<td><input type="text" data-f="configValue" data-i="' + idx + '" placeholder="' + esc(r.valuePlaceholder) + '" value="' + esc(r.configValue || '') + '" /></td>' +
+        '<td><input type="text" data-f="configName" data-i="' + idx + '" placeholder="' + esc(r.defaultName) + '" value="' + esc(r.configName || '') + '" /></td>';
+      tb.appendChild(tr);
+    });
+    tb.querySelectorAll('input[data-f]').forEach(function (inp) {
+      inp.addEventListener('input', function () {
+        var i = +inp.getAttribute('data-i'); var f = inp.getAttribute('data-f'); rows[i][f] = inp.value;
       });
-      tb.querySelectorAll('input[data-f]').forEach(function (inp) {
-        inp.addEventListener('input', function () {
-          var i = +inp.getAttribute('data-i');
-          var f = inp.getAttribute('data-f');
-          rows[i][f] = inp.value;
-        });
-      });
-    }
+    });
+  }
 
-    function mergeFromApi(list) {
-      var byKey = {};
-      (list || []).forEach(function (x) {
-        if (x && x.configKey) {
-          byKey[String(x.configKey).trim()] = x;
-        }
-      });
-      rows = FIXED_DEFINITIONS.map(function (def) {
-        var row = byKey[def.configKey];
-        return {
-          id: row && row.id != null ? row.id : null,
-          configKey: def.configKey,
-          title: def.title,
-          hint: def.hint,
-          valuePlaceholder: def.valuePlaceholder,
-          defaultName: def.defaultName,
-          configValue: row && row.configValue != null ? String(row.configValue) : '',
-          configName: row && row.configName != null && String(row.configName).trim() !== ''
-            ? String(row.configName)
-            : def.defaultName
-        };
-      });
-    }
+  function mergeFromApi(list) {
+    var byKey = {}; (list || []).forEach(function (x) { if (x && x.configKey) byKey[String(x.configKey).trim()] = x; });
+    rows = FIXED_DEFINITIONS.map(function (def) {
+      var row = byKey[def.configKey];
+      return { id: row?.id || null, configKey: def.configKey, title: def.title, hint: def.hint, valuePlaceholder: def.valuePlaceholder, defaultName: def.defaultName, configValue: row?.configValue || '', configName: row?.configName || def.defaultName };
+    });
+  }
 
-    async function loadList() {
-      hideMsg();
-      var b = apiBase();
-      var url = (b || '') + '/api/admin/oa-dict-config/list';
-      try {
-        var res = await fetch(url);
-        var json = await res.json();
-        if (!json.success) {
-          mergeFromApi([]);
-          render();
-          showMsg((json.message || '加载失败') + ' · 已显示四项固定键，可先填表名后点保存（若库中尚无记录将自动新增）', false);
-          return;
-        }
-        mergeFromApi(json.data);
-        render();
-        showMsg('已从数据库加载：' + FIXED_DEFINITIONS.length + ' 项（middle.insert.table 等）', true);
-      } catch (e) {
-        mergeFromApi([]);
-        render();
-        showMsg('请求失败（跨域、服务未启或未填 API 根地址？）：' + e.message
-          + ' · 已显示四项固定键名，仍可先填写右侧表名/字段后保存', false);
-      }
-    }
+  async function loadList() {
+    hideMsg(); var b = apiBase(); var url = b + '/api/admin/oa-dict-config/list';
+    try {
+      var res = await fetch(url); var json = await res.json();
+      if (!json.success) { mergeFromApi([]); render(); showMsg('加载失败，已显示固定配置项', false); return; }
+      mergeFromApi(json.data); render(); showMsg('已加载 ' + FIXED_DEFINITIONS.length + ' 项配置', true);
+    } catch (e) { mergeFromApi([]); render(); showMsg('接口请求失败：' + e.message, false); }
+  }
 
-    async function saveAll() {
-      hideMsg();
-      for (var i = 0; i < rows.length; i++) {
-        if (!(rows[i].configValue || '').trim()) {
-          showMsg('请填写「' + rows[i].title + '」的表名/字段名（不能为空）', false);
-          return;
-        }
-      }
-      var payload = rows.map(function (r) {
-        return {
-          id: r.id,
-          configKey: r.configKey,
-          configValue: (r.configValue || '').trim(),
-          configName: (r.configName || '').trim() || r.defaultName
-        };
-      });
-      var b = apiBase();
-      var url = (b || '') + '/api/admin/oa-dict-config/save-batch';
-      try {
-        var res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        var json = await res.json();
-        if (!json.success) {
-          showMsg(json.message || '保存失败', false);
-          return;
-        }
-        showMsg('保存成功，正在重新加载…', true);
-        await loadList();
-      } catch (e) {
-        showMsg('保存请求失败：' + e.message, false);
-      }
-    }
+  async function saveAll() {
+    hideMsg();
+    for (var i = 0; i < rows.length; i++) { if (!rows[i].configValue?.trim()) { showMsg('请填写：' + rows[i].title, false); return; } }
+    var payload = rows.map(r => ({ id: r.id, configKey: r.configKey, configValue: r.configValue.trim(), configName: r.configName.trim() }));
+    try {
+      var res = await fetch(apiBase() + '/api/admin/oa-dict-config/save-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      var json = await res.json();
+      if (!json.success) { showMsg(json.message || '保存失败', false); return; }
+      showMsg('保存成功，重新加载中…', true); await loadList();
+    } catch (e) { showMsg('保存失败：' + e.message, false); }
+  }
 
-    document.getElementById('btnLoad').addEventListener('click', loadList);
-    document.getElementById('btnSave').addEventListener('click', saveAll);
-
-    // 先同步画出 4 行（列出 middle.insert.table 等），避免接口慢/失败时表格空白
-    mergeFromApi([]);
-    render();
-    loadList();
-  </script>
+  document.getElementById('btnLoad').addEventListener('click', loadList);
+  document.getElementById('btnSave').addEventListener('click', saveAll);
+  mergeFromApi([]); render(); loadList();
+</script>
 </body>
 </html>
