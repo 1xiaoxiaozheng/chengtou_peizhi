@@ -1,0 +1,23 @@
+[
+  {
+    "dictType": "user_status",
+    "dictKey": "1",
+    "dictValue": "正常",
+    "sort": 0,
+    "status": 1,
+    "remark": "示例数据",
+    "createTime": null,
+    "updateTime": null
+  },
+  {
+    "dictType": "user_status",
+    "dictKey": "0",
+    "dictValue": "禁用",
+    "sort": 1,
+    "status": 1,
+    "remark": "示例数据",
+    "createTime": null,
+    "updateTime": null
+  }
+]
+

@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可视化配置后台</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus@2.5.6/dist/index.css"/>
+    <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/element-plus@2.5.6/dist/index.full.min.js"></script>
+    <style>
+        body { margin: 0; font-family: "Microsoft YaHei", Arial, sans-serif; background: #f5f7fa; }
+        .page { max-width: 1200px; margin: 0 auto; padding: 16px; }
+        .muted { color: #909399; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div id="app" class="page">
+    <h2 style="margin:0 0 8px 0;">FACT · 可视化配置后台</h2>
+    <p class="muted" style="margin: 8px 0 16px;">
+        配置保存目录由服务端 <code>app.config.external-dir</code> 决定（默认用户目录下 <code>.fact-admin-config</code>）。
+        保存后会写入 <code>sys_dict.json</code> / <code>sys_sql_config.json</code>，业务接口优先读外置文件。
+        <a href="/index.html">返回查询页</a>
+    </p>
+    <el-tabs v-model="activeTab" type="border-card">
+        <el-tab-pane label="数据字典" name="dict">
+            <el-space direction="vertical" :size="12" style="width:100%;" alignment="stretch">
+                <el-alert type="info" show-icon :closable="false"
+                          title="在此维护字典类型、键值与状态；保存后即时写入 JSON。"/>
+                <el-space>
+                    <el-button type="primary" @click="loadDict">刷新</el-button>
+                    <el-button @click="addDictRow">新增一行</el-button>
+                    <el-button type="success" :loading="dictSaving" @click="saveDict">保存全部</el-button>
+                </el-space>
+                <el-table :data="dictRows" border stripe size="small" style="width:100%">
+                    <el-table-column prop="dictType" label="字典类型" width="160">
+                        <template #default="scope">
+                            <el-input v-model="scope.row.dictType" placeholder="如 user_status"/>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="dictKey" label="键" width="120">
+                        <template #default="scope">
+                            <el-input v-model="scope.row.dictKey"/>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="dictValue" label="值" min-width="140">
+                        <template #default="scope">
+                            <el-input v-model="scope.row.dictValue"/>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="sort" label="排序" width="90">
+                        <template #default="scope">
+                            <el-input-number v-model="scope.row.sort" :min="0" :controls="false" style="width:100%"/>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="status" label="状态" width="120">
+                        <template #default="scope">
+                            <el-switch v-model="scope.row.status" :active-value="1" :inactive-value="0"
+                                       active-text="启用" inactive-text="停用"/>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="remark" label="备注" min-width="120">
+                        <template #default="scope">
+                            <el-input v-model="scope.row.remark"/>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="80" fixed="right">
+                        <template #default="scope">
+                            <el-button type="danger" link @click="removeDictRow(scope.$index)">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-space>
+        </el-tab-pane>
+
+        <el-tab-pane label="SQL 查询配置" name="sql">
+            <el-space direction="vertical" :size="12" style="width:100%;" alignment="stretch">
+                <el-alert type="warning" show-icon :closable="false"
+                          title="步骤：选表 → 勾选可查询字段 → 配置条件（可绑定字典供前端下拉）→ 排序 → 生成 sql_key 并保存。"/>
+                <el-steps :active="sqlStep" finish-status="success" align-center>
+                    <el-step title="选择表"/>
+                    <el-step title="可查询字段"/>
+                    <el-step title="查询条件"/>
+                    <el-step title="排序与保存"/>
+                </el-steps>
+
+                <el-card shadow="never" v-show="sqlStep===0">
+                    <template #header>第一步：选择业务表（来自当前库 INFORMATION_SCHEMA）</template>
+                    <el-space direction="vertical" style="width:100%">
+                        <el-select v-model="sqlForm.baseTable" filterable allow-create default-first-option
+                                   placeholder="选择或手动输入表名（仅字母数字下划线）" style="width:420px" @change="onTableChange">
+                            <el-option v-for="t in tableOptions" :key="t" :label="t" :value="t"/>
+                        </el-select>
+                        <el-button type="primary" :loading="tablesLoading" @click="loadTables">刷新表列表</el-button>
+                    </el-space>
+                </el-card>
+
+                <el-card shadow="never" v-show="sqlStep===1">
+                    <template #header>第二步：选择可查询字段</template>
+                    <el-button type="primary" link :loading="colsLoading" @click="loadColumns" v-if="sqlForm.baseTable">重新加载字段</el-button>
+                    <el-checkbox-group v-model="sqlForm.selectedFields" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+                        <el-checkbox v-for="c in columnOptions" :key="c" :label="c">{{ c }}</el-checkbox>
+                    </el-checkbox-group>
+                </el-card>
+
+                <el-card shadow="never" v-show="sqlStep===2">
+                    <template #header>第三步：配置查询条件</template>
+                    <el-button type="primary" link @click="addCondRow">添加条件</el-button>
+                    <el-table :data="sqlForm.conditions" border size="small" style="width:100%;margin-top:8px;">
+                        <el-table-column label="字段" width="200">
+                            <template #default="scope">
+                                <el-select v-model="scope.row.field" filterable placeholder="字段" style="width:100%">
+                                    <el-option v-for="c in columnOptions" :key="c" :label="c" :value="c"/>
+                                </el-select>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作符" width="140">
+                            <template #default="scope">
+                                <el-select v-model="scope.row.op" style="width:100%">
+                                    <el-option label="等于 eq" value="eq"/>
+                                    <el-option label="模糊 like" value="like"/>
+                                    <el-option label="范围 between" value="between"/>
+                                </el-select>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="输入类型（UI）" width="140">
+                            <template #default="scope">
+                                <el-select v-model="scope.row.inputType" clearable style="width:100%">
+                                    <el-option label="文本 text" value="text"/>
+                                    <el-option label="下拉 select" value="select"/>
+                                </el-select>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="绑定字典 dictType（可选）" min-width="200">
+                            <template #default="scope">
+                                <el-select v-model="scope.row.dict" filterable clearable allow-create placeholder="如 user_status" style="width:100%">
+                                    <el-option v-for="dt in dictTypes" :key="dt" :label="dt" :value="dt"/>
+                                </el-select>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" width="80" fixed="right">
+                            <template #default="scope">
+                                <el-button type="danger" link @click="removeCondRow(scope.$index)">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </el-card>
+
+                <el-card shadow="never" v-show="sqlStep===3">
+                    <template #header>第四步：排序、sql_key 与备注</template>
+                    <el-form label-width="120px" style="max-width:640px;">
+                        <el-form-item label="sql_key">
+                            <el-input v-model="sqlForm.sqlKey" placeholder="唯一标识，如 daily_plan_by_serial"/>
+                        </el-form-item>
+                        <el-form-item label="排序字段">
+                            <el-select v-model="sqlForm.sortField" filterable placeholder="须在可查询字段中" style="width:240px">
+                                <el-option v-for="f in sqlForm.selectedFields" :key="f" :label="f" :value="f"/>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="排序方向">
+                            <el-radio-group v-model="sqlForm.sortDir">
+                                <el-radio-button label="ASC">升序 ASC</el-radio-button>
+                                <el-radio-button label="DESC">降序 DESC</el-radio-button>
+                            </el-radio-group>
+                        </el-form-item>
+                        <el-form-item label="备注">
+                            <el-input v-model="sqlForm.remark"/>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="success" :loading="sqlSaving" @click="saveSqlConfig">保存 SQL 配置</el-button>
+                            <el-button @click="loadSqlList">刷新已有关键字列表</el-button>
+                        </el-form-item>
+                    </el-form>
+                    <div class="muted">已配置的 sql_key：</div>
+                    <el-tag v-for="k in sqlKeyList" :key="k" style="margin:4px" effect="plain" @click="applySqlKey(k)" class="tag-click">{{ k }}</el-tag>
+                </el-card>
+
+                <el-space>
+                    <el-button v-if="sqlStep>0" @click="sqlStep--">上一步</el-button>
+                    <el-button v-if="sqlStep<3" type="primary" @click="nextSqlStep">下一步</el-button>
+                </el-space>
+            </el-space>
+        </el-tab-pane>
+    </el-tabs>
+</div>
+
+<script>
+    const { createApp, ref, reactive, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            const activeTab = ref('dict');
+            const dictRows = ref([]);
+            const dictSaving = ref(false);
+            const dictTypes = ref([]);
+
+            const sqlStep = ref(0);
+            const tableOptions = ref([]);
+            const tablesLoading = ref(false);
+            const columnOptions = ref([]);
+            const colsLoading = ref(false);
+            const sqlKeyList = ref([]);
+            const sqlSaving = ref(false);
+
+            const sqlForm = reactive({
+                sqlKey: '',
+                baseTable: '',
+                selectedFields: [],
+                conditions: [],
+                sortField: '',
+                sortDir: 'DESC',
+                remark: ''
+            });
+
+            async function apiGet(url) {
+                const r = await fetch(url);
+                return r.json();
+            }
+            async function apiPost(url, body) {
+                const r = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                return r.json();
+            }
+
+            async function loadDict() {
+                const res = await apiGet('/api/admin/dict/list');
+                if (!res.success) {
+                    ElementPlus.ElMessage.error(res.message || '加载字典失败');
+                    return;
+                }
+                dictRows.value = (res.data || []).map(d => ({
+                    dictType: d.dictType || '',
+                    dictKey: d.dictKey || '',
+                    dictValue: d.dictValue || '',
+                    sort: d.sort == null ? 0 : d.sort,
+                    status: d.status == null ? 1 : d.status,
+                    remark: d.remark || ''
+                }));
+                await loadDictTypes();
+            }
+
+            async function loadDictTypes() {
+                const res = await apiGet('/api/admin/dict/types');
+                if (res.success) {
+                    dictTypes.value = res.data || [];
+                }
+            }
+
+            function addDictRow() {
+                dictRows.value.push({
+                    dictType: '',
+                    dictKey: '',
+                    dictValue: '',
+                    sort: 0,
+                    status: 1,
+                    remark: ''
+                });
+            }
+            function removeDictRow(i) {
+                dictRows.value.splice(i, 1);
+            }
+
+            async function saveDict() {
+                dictSaving.value = true;
+                try {
+                    const res = await apiPost('/api/admin/dict/save', dictRows.value);
+                    if (res.success) {
+                        ElementPlus.ElMessage.success('字典已保存');
+                        await loadDict();
+                    } else {
+                        ElementPlus.ElMessage.error(res.message || '保存失败');
+                    }
+                } finally {
+                    dictSaving.value = false;
+                }
+            }
+
+            async function loadTables() {
+                tablesLoading.value = true;
+                try {
+                    const res = await apiGet('/api/admin/schema/tables');
+                    if (!res.success) {
+                        ElementPlus.ElMessage.error(res.message || '加载表失败');
+                        return;
+                    }
+                    tableOptions.value = (res.data || []).map(r => String(r)).filter(Boolean);
+                } finally {
+                    tablesLoading.value = false;
+                }
+            }
+
+            async function loadColumns() {
+                if (!sqlForm.baseTable) {
+                    ElementPlus.ElMessage.warning('请先选择表');
+                    return;
+                }
+                colsLoading.value = true;
+                try {
+                    const res = await apiGet('/api/admin/schema/columns?table=' + encodeURIComponent(sqlForm.baseTable));
+                    if (!res.success) {
+                        ElementPlus.ElMessage.error(res.message || '加载字段失败');
+                        return;
+                    }
+                    columnOptions.value = (res.data || []).map(r => String(r)).filter(Boolean);
+                } finally {
+                    colsLoading.value = false;
+                }
+            }
+
+            function onTableChange() {
+                sqlForm.selectedFields = [];
+                sqlForm.sortField = '';
+                columnOptions.value = [];
+            }
+
+            function addCondRow() {
+                sqlForm.conditions.push({ field: '', op: 'eq', inputType: '', dict: '' });
+            }
+            function removeCondRow(i) {
+                sqlForm.conditions.splice(i, 1);
+            }
+
+            async function loadSqlList() {
+                const res = await apiGet('/api/admin/sql-config/list');
+                if (!res.success) {
+                    ElementPlus.ElMessage.error(res.message || '加载 SQL 配置失败');
+                    return;
+                }
+                sqlKeyList.value = (res.data || []).map(c => c.sqlKey).filter(Boolean);
+            }
+
+            async function applySqlKey(k) {
+                sqlForm.sqlKey = k;
+                const res = await apiGet('/api/admin/sql-config/' + encodeURIComponent(k));
+                if (!res.success || !res.data) {
+                    ElementPlus.ElMessage.error(res.message || '未找到配置');
+                    return;
+                }
+                const c = res.data;
+                sqlForm.baseTable = c.baseTable || '';
+                try {
+                    sqlForm.selectedFields = JSON.parse(c.selectableFields || '[]');
+                } catch (e) {
+                    sqlForm.selectedFields = [];
+                }
+                let rules = [];
+                try {
+                    rules = JSON.parse(c.conditionFields || '[]');
+                } catch (e) {
+                    rules = [];
+                }
+                sqlForm.conditions = (rules || []).map(r => ({
+                    field: r.field || '',
+                    op: r.op || 'eq',
+                    inputType: r.inputType || '',
+                    dict: r.dict || ''
+                }));
+                const ds = (c.defaultSort || '').trim();
+                if (ds.includes(' ')) {
+                    const sp = ds.split(/\s+/);
+                    sqlForm.sortField = sp[0];
+                    sqlForm.sortDir = (sp[1] || 'ASC').toUpperCase();
+                } else {
+                    sqlForm.sortField = ds;
+                    sqlForm.sortDir = 'ASC';
+                }
+                sqlForm.remark = c.remark || '';
+                await loadColumns();
+                ElementPlus.ElMessage.success('已载入：' + k);
+            }
+
+            function nextSqlStep() {
+                if (sqlStep.value === 0 && !sqlForm.baseTable) {
+                    ElementPlus.ElMessage.warning('请选择表名');
+                    return;
+                }
+                if (sqlStep.value === 0) {
+                    loadColumns();
+                }
+                if (sqlStep.value === 1 && (!sqlForm.selectedFields || sqlForm.selectedFields.length === 0)) {
+                    ElementPlus.ElMessage.warning('请至少勾选一个可查询字段');
+                    return;
+                }
+                if (sqlStep.value === 2) {
+                    for (const row of sqlForm.conditions) {
+                        if (!row.field) {
+                            ElementPlus.ElMessage.warning('条件行字段不能为空');
+                            return;
+                        }
+                    }
+                }
+                if (sqlStep.value < 3) {
+                    sqlStep.value++;
+                }
+            }
+
+            async function saveSqlConfig() {
+                if (!sqlForm.sqlKey || !sqlForm.baseTable) {
+                    ElementPlus.ElMessage.warning('请填写 sql_key 并选择表');
+                    return;
+                }
+                if (!sqlForm.selectedFields || sqlForm.selectedFields.length === 0) {
+                    ElementPlus.ElMessage.warning('请选择可查询字段');
+                    return;
+                }
+                if (sqlForm.sortField && !sqlForm.selectedFields.includes(sqlForm.sortField)) {
+                    ElementPlus.ElMessage.warning('排序字段必须在可查询字段中');
+                    return;
+                }
+                const condPayload = sqlForm.conditions
+                    .filter(r => r.field)
+                    .map(r => {
+                        const o = { field: r.field, op: r.op };
+                        if (r.dict) o.dict = r.dict;
+                        if (r.inputType) o.inputType = r.inputType;
+                        return o;
+                    });
+                const defaultSort = sqlForm.sortField
+                    ? (sqlForm.sortDir === 'DESC' ? sqlForm.sortField + ' DESC' : sqlForm.sortField)
+                    : '';
+                const body = {
+                    sqlKey: sqlForm.sqlKey.trim(),
+                    baseTable: sqlForm.baseTable.trim(),
+                    selectableFields: JSON.stringify(sqlForm.selectedFields),
+                    conditionFields: JSON.stringify(condPayload),
+                    defaultSort: defaultSort,
+                    remark: sqlForm.remark || ''
+                };
+                sqlSaving.value = true;
+                try {
+                    const res = await apiPost('/api/admin/sql-config/save', body);
+                    if (res.success) {
+                        ElementPlus.ElMessage.success('SQL 配置已保存');
+                        await loadSqlList();
+                    } else {
+                        ElementPlus.ElMessage.error(res.message || '保存失败');
+                    }
+                } finally {
+                    sqlSaving.value = false;
+                }
+            }
+
+            onMounted(async () => {
+                await loadDict();
+                await loadTables();
+                await loadSqlList();
+            });
+
+            return {
+                activeTab,
+                dictRows, dictSaving, loadDict, addDictRow, removeDictRow, saveDict,
+                dictTypes,
+                sqlStep, tableOptions, tablesLoading, columnOptions, colsLoading,
+                sqlForm, loadColumns, onTableChange, addCondRow, removeCondRow,
+                saveSqlConfig, sqlSaving, sqlKeyList, loadSqlList, applySqlKey, nextSqlStep
+            };
+        }
+    }).use(ElementPlus).mount('#app');
+</script>
+<style>
+    .tag-click { cursor: pointer; }
+</style>
+</body>
+</html>

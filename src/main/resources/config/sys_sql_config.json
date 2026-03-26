@@ -1,0 +1,11 @@
+[
+  {
+    "sqlKey": "daily_plan_by_serial",
+    "baseTable": "formmain_0029",
+    "selectableFields": "[\"id\",\"field0001\",\"field0046\",\"field0059\",\"field0060\"]",
+    "conditionFields": "[{\"field\":\"field0001\",\"op\":\"eq\"}]",
+    "defaultSort": "field0059",
+    "remark": "按单据编号查询按日还款计划（示例）"
+  }
+]
+
