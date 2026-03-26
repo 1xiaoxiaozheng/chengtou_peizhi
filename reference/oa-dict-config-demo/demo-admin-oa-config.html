@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>按日还款计划 · 数据库表名与字段配置</title>
+  <style>
+    :root { --bg:#f4f6f9; --card:#fff; --border:#e4e7ed; --primary:#409eff; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:"Microsoft YaHei","Segoe UI",sans-serif; background:var(--bg); color:#303133; font-size:14px; }
+    .wrap { max-width:1100px; margin:0 auto; padding:20px 16px 48px; }
+    h1 { font-size:18px; margin:0 0 8px; font-weight:600; }
+    .hint { color:#909399; font-size:12px; line-height:1.6; margin-bottom:16px; }
+    code { background:#f0f2f5; padding:1px 6px; border-radius:3px; font-size:12px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:16px; }
+    .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:12px; }
+    label { font-size:12px; color:#606266; min-width:72px; }
+    input[type="text"] { flex:1; min-width:200px; padding:8px 10px; border:1px solid var(--border); border-radius:4px; }
+    button { padding:8px 16px; border:none; border-radius:4px; cursor:pointer; font-size:13px; }
+    button.primary { background:var(--primary); color:#fff; }
+    button.default { background:#fff; color:#606266; border:1px solid var(--border); }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { border:1px solid var(--border); padding:8px 10px; text-align:left; vertical-align:middle; }
+    th { background:#fafafa; font-weight:600; white-space:nowrap; }
+    td input { width:100%; border:1px solid var(--border); padding:6px 8px; border-radius:4px; }
+    td input:focus { border-color:var(--primary); outline:none; }
+    td.num { color:#909399; width:52px; font-variant-numeric:tabular-nums; }
+    td.keycell { background:#fafafa; }
+    td.keycell .k-title { font-weight:600; margin-bottom:4px; }
+    td.keycell .k-code { font-size:13px; color:#303133; margin-top:2px; }
+    td.keycell .k-code code { font-size:13px; font-weight:600; color:#1d39c4; }
+    td.keycell .k-lock { font-size:11px; color:#909399; margin-top:6px; }
+    .msg { padding:10px 12px; border-radius:4px; margin-bottom:12px; display:none; }
+    .msg.show { display:block; }
+    .msg.ok { background:#e1f3d8; color:#529b2e; }
+    .msg.err { background:#fde2e2; color:#c45656; }
+    .purpose { background:#ecf5ff; border:1px solid #d9ecff; border-radius:8px; padding:12px 14px; margin-bottom:16px; font-size:13px; line-height:1.65; color:#303133; }
+    .purpose strong { color:#409eff; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>按日还款计划 · 数据库表名与字段配置</h1>
+<!--    <div class="purpose">-->
+<!--      <strong>运维怎么用？</strong>-->
+<!--      下面只有<strong>四项固定配置</strong>（程序里写死的 <code>config_key</code>），您<strong>不用也不允许改键名</strong>，只需填写<strong>表名</strong>或<strong>字段名</strong>（<code>config_value</code>），必要时改「说明」（<code>config_name</code>）。-->
+<!--      数据写入库表 <code>oa_dict_config</code>，保存后下次定时任务会读到新值。-->
+<!--    </div>-->
+<!--    <p class="hint">-->
+<!--      演示路径：<code>reference/oa-dict-config-demo/demo-admin-oa-config.html</code>；并入工程后建议放 <code>static/</code> 同源访问。接口：<code>/api/admin/oa-dict-config</code>。-->
+<!--    </p>-->
+
+    <div id="msg" class="msg"></div>
+
+    <div class="card">
+      <div class="row">
+        <label for="baseUrl">API 根地址</label>
+        <input type="text" id="baseUrl" placeholder="留空=与当前页面同源；file 打开时请填 http://主机:端口" />
+      </div>
+      <div class="row">
+        <button type="button" class="default" id="btnLoad">重新加载</button>
+        <button type="button" class="primary" id="btnSave">保存到数据库</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">ID</th>
+            <th style="min-width:200px">配置项（键名由系统固定）</th>
+            <th>数据库表名 / 字段名（请填写）</th>
+            <th>说明（可改）</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * config_key 与后端 DailyNotify 约定一致，写死在前端，避免运维填错键。
+     */
+    var FIXED_DEFINITIONS = [
+      {
+        configKey: 'middle.insert.table',
+        title: '中间表',
+        hint: '按日还款计划表模拟付息和计划还本更新监听触发器写入的中间表',
+        defaultName: '中间表名',
+        valuePlaceholder: '如 Middle_Insert_Records'
+      },
+      {
+        configKey: 'oa.plan.detail.table',
+        title: '按日计划 · 明细表',
+        hint: 'OA按日还款计划表的还款明细表（下柜、还本、付息等)',
+        defaultName: '还款计划表明细表',
+        valuePlaceholder: '如 formson_0030'
+      },
+      {
+        configKey: 'oa.plan.main.table',
+        title: '按日计划 · 主表',
+        hint: 'OA按日还款计划表主表表名(合同编号、贷款开始时间、贷款结束时间等)',
+        defaultName: '还款计划表主表',
+        valuePlaceholder: '如 formmain_0029'
+      },
+      {
+        configKey: 'oa.plan.serial.field',
+        title: '主表 · 单据编号字段',
+        hint: '主表上流水号/单据编号字段名',
+        defaultName: '主表单据编号字段',
+        valuePlaceholder: '如 field0001'
+      }
+    ];
+
+    function apiBase() {
+      var v = document.getElementById('baseUrl').value.trim();
+      return v ? v.replace(/\/$/, '') : '';
+    }
+
+    function showMsg(text, ok) {
+      var el = document.getElementById('msg');
+      el.textContent = text;
+      el.className = 'msg show ' + (ok ? 'ok' : 'err');
+    }
+
+    function hideMsg() {
+      var el = document.getElementById('msg');
+      el.className = 'msg';
+      el.textContent = '';
+    }
+
+    /** 每项：id, configKey, title, hint, configValue, configName, defaultName, valuePlaceholder */
+    var rows = [];
+
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;');
+    }
+
+    function render() {
+      var tb = document.getElementById('tbody');
+      tb.innerHTML = '';
+      rows.forEach(function (r, idx) {
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td class="num">' + (r.id != null ? r.id : '—') + '</td>' +
+          '<td class="keycell">' +
+            '<div class="k-title">' + esc(r.title) + '</div>' +
+            '<div class="k-code">系统键名 <code>' + esc(r.configKey) + '</code>（不可改）</div>' +
+            '<div class="k-lock">' + esc(r.hint) + '</div>' +
+          '</td>' +
+          '<td><input type="text" data-f="configValue" data-i="' + idx + '" placeholder="' + esc(r.valuePlaceholder) + '" value="' + esc(r.configValue || '') + '" /></td>' +
+          '<td><input type="text" data-f="configName" data-i="' + idx + '" placeholder="' + esc(r.defaultName) + '" value="' + esc(r.configName || '') + '" /></td>';
+        tb.appendChild(tr);
+      });
+      tb.querySelectorAll('input[data-f]').forEach(function (inp) {
+        inp.addEventListener('input', function () {
+          var i = +inp.getAttribute('data-i');
+          var f = inp.getAttribute('data-f');
+          rows[i][f] = inp.value;
+        });
+      });
+    }
+
+    function mergeFromApi(list) {
+      var byKey = {};
+      (list || []).forEach(function (x) {
+        if (x && x.configKey) {
+          byKey[String(x.configKey).trim()] = x;
+        }
+      });
+      rows = FIXED_DEFINITIONS.map(function (def) {
+        var row = byKey[def.configKey];
+        return {
+          id: row && row.id != null ? row.id : null,
+          configKey: def.configKey,
+          title: def.title,
+          hint: def.hint,
+          valuePlaceholder: def.valuePlaceholder,
+          defaultName: def.defaultName,
+          configValue: row && row.configValue != null ? String(row.configValue) : '',
+          configName: row && row.configName != null && String(row.configName).trim() !== ''
+            ? String(row.configName)
+            : def.defaultName
+        };
+      });
+    }
+
+    async function loadList() {
+      hideMsg();
+      var b = apiBase();
+      var url = (b || '') + '/api/admin/oa-dict-config/list';
+      try {
+        var res = await fetch(url);
+        var json = await res.json();
+        if (!json.success) {
+          mergeFromApi([]);
+          render();
+          showMsg((json.message || '加载失败') + ' · 已显示四项固定键，可先填表名后点保存（若库中尚无记录将自动新增）', false);
+          return;
+        }
+        mergeFromApi(json.data);
+        render();
+        showMsg('已从数据库加载：' + FIXED_DEFINITIONS.length + ' 项（middle.insert.table 等）', true);
+      } catch (e) {
+        mergeFromApi([]);
+        render();
+        showMsg('请求失败（跨域、服务未启或未填 API 根地址？）：' + e.message
+          + ' · 已显示四项固定键名，仍可先填写右侧表名/字段后保存', false);
+      }
+    }
+
+    async function saveAll() {
+      hideMsg();
+      for (var i = 0; i < rows.length; i++) {
+        if (!(rows[i].configValue || '').trim()) {
+          showMsg('请填写「' + rows[i].title + '」的表名/字段名（不能为空）', false);
+          return;
+        }
+      }
+      var payload = rows.map(function (r) {
+        return {
+          id: r.id,
+          configKey: r.configKey,
+          configValue: (r.configValue || '').trim(),
+          configName: (r.configName || '').trim() || r.defaultName
+        };
+      });
+      var b = apiBase();
+      var url = (b || '') + '/api/admin/oa-dict-config/save-batch';
+      try {
+        var res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        var json = await res.json();
+        if (!json.success) {
+          showMsg(json.message || '保存失败', false);
+          return;
+        }
+        showMsg('保存成功，正在重新加载…', true);
+        await loadList();
+      } catch (e) {
+        showMsg('保存请求失败：' + e.message, false);
+      }
+    }
+
+    document.getElementById('btnLoad').addEventListener('click', loadList);
+    document.getElementById('btnSave').addEventListener('click', saveAll);
+
+    // 先同步画出 4 行（列出 middle.insert.table 等），避免接口慢/失败时表格空白
+    mergeFromApi([]);
+    render();
+    loadList();
+  </script>
+</body>
+</html>
