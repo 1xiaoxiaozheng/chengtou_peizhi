@@ -1,6 +1,10 @@
 package com.SpringbootTZ.FACT.Controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.SpringbootTZ.FACT.Service.FormMetaSqlGenerator;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,9 +18,11 @@ import java.util.Map;
 public class AdminMetaController {
 
     private final FormMetaSqlGenerator formMetaSqlGenerator;
+    private final ObjectMapper objectMapper;
 
-    public AdminMetaController(FormMetaSqlGenerator formMetaSqlGenerator) {
+    public AdminMetaController(FormMetaSqlGenerator formMetaSqlGenerator, ObjectMapper objectMapper) {
         this.formMetaSqlGenerator = formMetaSqlGenerator;
+        this.objectMapper = objectMapper;
     }
 
     public static class GeneratePayload {
@@ -54,6 +60,26 @@ public class AdminMetaController {
             resp.put("success", true);
             resp.put("message", "ok");
             resp.put("data", data);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            resp.put("data", null);
+        }
+        return resp;
+    }
+
+    @GetMapping("/config")
+    public Map<String, Object> config() {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            ClassPathResource res = new ClassPathResource("config/form_meta_config.json");
+            if (!res.exists()) {
+                throw new IllegalStateException("classpath 未找到 config/form_meta_config.json");
+            }
+            JsonNode json = objectMapper.readTree(res.getInputStream());
+            resp.put("success", true);
+            resp.put("message", "ok");
+            resp.put("data", json);
         } catch (Exception e) {
             resp.put("success", false);
             resp.put("message", e.getMessage());

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <!-- 定义日志文件的存储地址 -->
-    <property name="LOG_HOME" value="C:/Users/19795/Desktop/log"/>
+    <property name="LOG_HOME" value="./logs"/>
     <!-- 全量日志路径 -->
-    <property name="ALL_LOG_HOME" value="D:/springbooot/Log/allLog"/>
+    <property name="ALL_LOG_HOME" value="./logs/allLog"/>
     <!-- 错误日志路径 -->
-    <property name="ERROR_LOG_HOME" value="D:/springbooot/Log/error"/>
+    <property name="ERROR_LOG_HOME" value="./logs/error"/>
     
     <!-- 控制台输出 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">

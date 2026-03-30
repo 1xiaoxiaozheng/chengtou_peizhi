@@ -1,23 +1,811 @@
-[
-  {
-    "dictType": "user_status",
-    "dictKey": "1",
-    "dictValue": "正常",
-    "sort": 0,
-    "status": 1,
-    "remark": "示例数据",
-    "createTime": null,
-    "updateTime": null
-  },
-  {
-    "dictType": "user_status",
-    "dictKey": "0",
-    "dictValue": "禁用",
-    "sort": 1,
-    "status": 1,
-    "remark": "示例数据",
-    "createTime": null,
-    "updateTime": null
-  }
-]
-
+[ {
+  "id" : null,
+  "dictType" : "formmain_0026",
+  "dictKey" : "field0012",
+  "dictValue" : "field0012",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款余额合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0026",
+  "dictKey" : "field0022",
+  "dictValue" : "field0022",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款项目编码",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0026",
+  "dictKey" : "field0020",
+  "dictValue" : "field0020",
+  "sort" : null,
+  "status" : null,
+  "remark" : "模拟付息",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0001",
+  "dictValue" : "field0001",
+  "sort" : null,
+  "status" : null,
+  "remark" : "单据编号",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0002",
+  "dictValue" : "field0002",
+  "sort" : null,
+  "status" : null,
+  "remark" : "经办人",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0003",
+  "dictValue" : "field0003",
+  "sort" : null,
+  "status" : null,
+  "remark" : "经办部门",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0004",
+  "dictValue" : "field0004",
+  "sort" : null,
+  "status" : null,
+  "remark" : "经办日期",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0044",
+  "dictValue" : "field0044",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款项目",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0045",
+  "dictValue" : "field0045",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款单位",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0046",
+  "dictValue" : "field0046",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款银行",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0008",
+  "dictValue" : "field0008",
+  "sort" : null,
+  "status" : null,
+  "remark" : "合同金额",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0059",
+  "dictValue" : "field0059",
+  "sort" : null,
+  "status" : null,
+  "remark" : "开始日期",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0060",
+  "dictValue" : "field0060",
+  "sort" : null,
+  "status" : null,
+  "remark" : "结束日期",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0011",
+  "dictValue" : "field0011",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款时间",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0042",
+  "dictValue" : "field0042",
+  "sort" : null,
+  "status" : null,
+  "remark" : "最新利率",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0013",
+  "dictValue" : "field0013",
+  "sort" : null,
+  "status" : null,
+  "remark" : "还本模式",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0014",
+  "dictValue" : "field0014",
+  "sort" : null,
+  "status" : null,
+  "remark" : "付息模式",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0054",
+  "dictValue" : "field0054",
+  "sort" : null,
+  "status" : null,
+  "remark" : "担保模式",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0055",
+  "dictValue" : "field0055",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款模式",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0056",
+  "dictValue" : "field0056",
+  "sort" : null,
+  "status" : null,
+  "remark" : "资金用途",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0034",
+  "dictValue" : "field0034",
+  "sort" : null,
+  "status" : null,
+  "remark" : "下柜资金合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0035",
+  "dictValue" : "field0035",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款余额合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0036",
+  "dictValue" : "field0036",
+  "sort" : null,
+  "status" : null,
+  "remark" : "还本合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0037",
+  "dictValue" : "field0037",
+  "sort" : null,
+  "status" : null,
+  "remark" : "付息合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0038",
+  "dictValue" : "field0038",
+  "sort" : null,
+  "status" : null,
+  "remark" : "计划还本合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0039",
+  "dictValue" : "field0039",
+  "sort" : null,
+  "status" : null,
+  "remark" : "模拟付息合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0040",
+  "dictValue" : "field0040",
+  "sort" : null,
+  "status" : null,
+  "remark" : "默认还款日",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0041",
+  "dictValue" : "field0041",
+  "sort" : null,
+  "status" : null,
+  "remark" : "利率生效时间",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0061",
+  "dictValue" : "field0061",
+  "sort" : null,
+  "status" : null,
+  "remark" : "是否添加明细表日期",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0043",
+  "dictValue" : "field0043",
+  "sort" : null,
+  "status" : null,
+  "remark" : "默认开始还款月",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0025",
+  "dictValue" : "field0025",
+  "sort" : null,
+  "status" : null,
+  "remark" : "序号1",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0026",
+  "dictValue" : "field0026",
+  "sort" : null,
+  "status" : null,
+  "remark" : "时间",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0027",
+  "dictValue" : "field0027",
+  "sort" : null,
+  "status" : null,
+  "remark" : "下柜资金",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0028",
+  "dictValue" : "field0028",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款余额",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0029",
+  "dictValue" : "field0029",
+  "sort" : null,
+  "status" : null,
+  "remark" : "还本",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0030",
+  "dictValue" : "field0030",
+  "sort" : null,
+  "status" : null,
+  "remark" : "付息",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0031",
+  "dictValue" : "field0031",
+  "sort" : null,
+  "status" : null,
+  "remark" : "备注-还款计划",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0032",
+  "dictValue" : "field0032",
+  "sort" : null,
+  "status" : null,
+  "remark" : "计划还本",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0029",
+  "dictKey" : "field0033",
+  "dictValue" : "field0033",
+  "sort" : null,
+  "status" : null,
+  "remark" : "模拟付息",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0007",
+  "dictValue" : "field0007",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款银行",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0003",
+  "dictValue" : "field0003",
+  "sort" : null,
+  "status" : null,
+  "remark" : "经办部门",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0002",
+  "dictValue" : "field0002",
+  "sort" : null,
+  "status" : null,
+  "remark" : "经办人",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0006",
+  "dictValue" : "field0006",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款单位",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0008",
+  "dictValue" : "field0008",
+  "sort" : null,
+  "status" : null,
+  "remark" : "合同金额",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0001",
+  "dictValue" : "field0001",
+  "sort" : null,
+  "status" : null,
+  "remark" : "单据编号",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0004",
+  "dictValue" : "field0004",
+  "sort" : null,
+  "status" : null,
+  "remark" : "经办日期",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0005",
+  "dictValue" : "field0005",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款项目",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0009",
+  "dictValue" : "field0009",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款开始日期",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0010",
+  "dictValue" : "field0010",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款结束日期",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0011",
+  "dictValue" : "field0011",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款时间",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0012",
+  "dictValue" : "field0012",
+  "sort" : null,
+  "status" : null,
+  "remark" : "最新利率",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0013",
+  "dictValue" : "field0013",
+  "sort" : null,
+  "status" : null,
+  "remark" : "还本模式",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0014",
+  "dictValue" : "field0014",
+  "sort" : null,
+  "status" : null,
+  "remark" : "付息模式",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0015",
+  "dictValue" : "field0015",
+  "sort" : null,
+  "status" : null,
+  "remark" : "担保模式",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0016",
+  "dictValue" : "field0016",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款模式",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0017",
+  "dictValue" : "field0017",
+  "sort" : null,
+  "status" : null,
+  "remark" : "资金用途",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0034",
+  "dictValue" : "field0034",
+  "sort" : null,
+  "status" : null,
+  "remark" : "下柜资金合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0035",
+  "dictValue" : "field0035",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款余额合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0036",
+  "dictValue" : "field0036",
+  "sort" : null,
+  "status" : null,
+  "remark" : "还本合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0037",
+  "dictValue" : "field0037",
+  "sort" : null,
+  "status" : null,
+  "remark" : "付息合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0038",
+  "dictValue" : "field0038",
+  "sort" : null,
+  "status" : null,
+  "remark" : "计划还本合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0039",
+  "dictValue" : "field0039",
+  "sort" : null,
+  "status" : null,
+  "remark" : "模拟付息合计",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0040",
+  "dictValue" : "field0040",
+  "sort" : null,
+  "status" : null,
+  "remark" : "默认还款日",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0042",
+  "dictValue" : "field0042",
+  "sort" : null,
+  "status" : null,
+  "remark" : "利率生效时间",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0043",
+  "dictValue" : "field0043",
+  "sort" : null,
+  "status" : null,
+  "remark" : "是否添加明细表",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0044",
+  "dictValue" : "field0044",
+  "sort" : null,
+  "status" : null,
+  "remark" : "默认开始还款月",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0019",
+  "dictValue" : "field0019",
+  "sort" : null,
+  "status" : null,
+  "remark" : "抵押物",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0021",
+  "dictValue" : "field0021",
+  "sort" : null,
+  "status" : null,
+  "remark" : "担保公司",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0022",
+  "dictValue" : "field0022",
+  "sort" : null,
+  "status" : null,
+  "remark" : "文件名称",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0023",
+  "dictValue" : "field0023",
+  "sort" : null,
+  "status" : null,
+  "remark" : "上传附件",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0024",
+  "dictValue" : "field0024",
+  "sort" : null,
+  "status" : null,
+  "remark" : "备注",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0025",
+  "dictValue" : "field0025",
+  "sort" : null,
+  "status" : null,
+  "remark" : "序号1",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0026",
+  "dictValue" : "field0026",
+  "sort" : null,
+  "status" : null,
+  "remark" : "时间",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0027",
+  "dictValue" : "field0027",
+  "sort" : null,
+  "status" : null,
+  "remark" : "下柜资金",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0028",
+  "dictValue" : "field0028",
+  "sort" : null,
+  "status" : null,
+  "remark" : "贷款余额",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0029",
+  "dictValue" : "field0029",
+  "sort" : null,
+  "status" : null,
+  "remark" : "还本",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0030",
+  "dictValue" : "field0030",
+  "sort" : null,
+  "status" : null,
+  "remark" : "付息",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0031",
+  "dictValue" : "field0031",
+  "sort" : null,
+  "status" : null,
+  "remark" : "备注-还款计划",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0032",
+  "dictValue" : "field0032",
+  "sort" : null,
+  "status" : null,
+  "remark" : "计划还本",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0033",
+  "dictValue" : "field0033",
+  "sort" : null,
+  "status" : null,
+  "remark" : "模拟付息",
+  "createTime" : null,
+  "updateTime" : null
+}, {
+  "id" : null,
+  "dictType" : "formmain_0039",
+  "dictKey" : "field0047",
+  "dictValue" : "field0047",
+  "sort" : null,
+  "status" : null,
+  "remark" : "是否默认还款日",
+  "createTime" : null,
+  "updateTime" : null
+} ]

@@ -1,5 +1,7 @@
 package com.SpringbootTZ.FACT.Controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.SpringbootTZ.FACT.Entity.SysDict;
 import com.SpringbootTZ.FACT.Service.ConfigFileRepository;
 import org.apache.poi.ss.usermodel.Cell;
@@ -22,23 +24,36 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/admin/dict")
 public class AdminDictController {
 
     private final ConfigFileRepository configFileRepository;
+    private final ObjectMapper objectMapper;
 
-    public AdminDictController(ConfigFileRepository configFileRepository) {
+    private static final Pattern INLINE_FIELD_WITH_REMARK = Pattern.compile(
+            "\\{\\n\\s*\"primaryKey\":\\s*\"([^\"]*)\",\\n\\s*\"code\":\\s*\"([^\"]*)\",\\n\\s*\"label\":\\s*\"([^\"]*)\",\\n\\s*\"remark\":\\s*\"([^\"]*)\"\\n\\s*\\}"
+    );
+
+    public AdminDictController(ConfigFileRepository configFileRepository, ObjectMapper objectMapper) {
         this.configFileRepository = configFileRepository;
+        this.objectMapper = objectMapper;
     }
 
     @GetMapping("/list")
@@ -85,6 +100,7 @@ public class AdminDictController {
         Map<String, Object> resp = new HashMap<>();
         try {
             configFileRepository.saveAllDicts(rows);
+            syncRemarksToFormMeta(rows);
             resp.put("success", true);
             resp.put("message", "保存成功");
             resp.put("data", null);
@@ -96,43 +112,10 @@ public class AdminDictController {
         return resp;
     }
 
-    private static String normalizeStatusToDisplay(Integer status) {
-        if (status == null) {
-            return "启用";
-        }
-        return status.intValue() == 0 ? "禁用" : "启用";
-    }
-
-    private static Integer parseStatus(String raw) {
-        if (raw == null) {
-            return null;
-        }
-        String s = raw.trim();
-        if (s.isEmpty()) {
-            return null;
-        }
-        if ("1".equals(s) || "启用".equalsIgnoreCase(s) || "enable".equalsIgnoreCase(s) || "enabled".equalsIgnoreCase(s)
-                || "on".equalsIgnoreCase(s) || "true".equalsIgnoreCase(s)) {
-            return 1;
-        }
-        if ("0".equals(s) || "禁用".equalsIgnoreCase(s) || "停用".equalsIgnoreCase(s) || "disable".equalsIgnoreCase(s)
-                || "disabled".equalsIgnoreCase(s) || "off".equalsIgnoreCase(s) || "false".equalsIgnoreCase(s)) {
-            return 0;
-        }
-        // 兜底：尝试解析整数
-        try {
-            int v = Integer.parseInt(s);
-            if (v == 1) return 1;
-            if (v == 0) return 0;
-        } catch (Exception ignore) {
-        }
-        throw new IllegalArgumentException("status 不合法，应为 启用/禁用 或 1/0： " + raw);
-    }
-
     /**
      * 导出该 dictType 的数据字典为 xlsx，单 sheet。
      * Excel 填写列：
-     * dictKey, dictValue, sort, status(启用/禁用 或 1/0), remark
+     * dictKey, dictValue, sort, remark
      */
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportXlsx(@RequestParam String dictType) throws Exception {
@@ -143,7 +126,9 @@ public class AdminDictController {
 
         List<SysDict> rows = configFileRepository.getDictByType(dt);
         List<SysDict> sorted = rows == null ? new ArrayList<>() : rows;
+        // 保护：过滤掉任何 null 元素，避免 NPE
         sorted = sorted.stream()
+                .filter(java.util.Objects::nonNull)
                 .sorted((a, b) -> {
                     int sa = a.getSort() == null ? 0 : a.getSort().intValue();
                     int sb = b.getSort() == null ? 0 : b.getSort().intValue();
@@ -162,16 +147,14 @@ public class AdminDictController {
         header.createCell(0).setCellValue("dictKey");
         header.createCell(1).setCellValue("dictValue");
         header.createCell(2).setCellValue("sort");
-        header.createCell(3).setCellValue("status(启用/禁用 或 1/0)");
-        header.createCell(4).setCellValue("remark");
+        header.createCell(3).setCellValue("remark");
 
         for (SysDict d : sorted) {
             Row row = sheet.createRow(r++);
             row.createCell(0).setCellValue(d.getDictKey() == null ? "" : d.getDictKey());
             row.createCell(1).setCellValue(d.getDictValue() == null ? "" : d.getDictValue());
             row.createCell(2).setCellValue(d.getSort() == null ? 0 : d.getSort());
-            row.createCell(3).setCellValue(normalizeStatusToDisplay(d.getStatus()));
-            row.createCell(4).setCellValue(d.getRemark() == null ? "" : d.getRemark());
+            row.createCell(3).setCellValue(d.getRemark() == null ? "" : d.getRemark());
         }
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -227,11 +210,10 @@ public class AdminDictController {
                     String dictKey = formatter.formatCellValue(getCell(row, 0)).trim();
                     String dictValue = formatter.formatCellValue(getCell(row, 1)).trim();
                     String sortStr = formatter.formatCellValue(getCell(row, 2)).trim();
-                    String statusStr = formatter.formatCellValue(getCell(row, 3)).trim();
-                    String remark = formatter.formatCellValue(getCell(row, 4)).trim();
+                    String remark = formatter.formatCellValue(getCell(row, 3)).trim();
 
                     // 完全空行跳过
-                    if (dictKey.isEmpty() && dictValue.isEmpty() && sortStr.isEmpty() && statusStr.isEmpty() && remark.isEmpty()) {
+                    if (dictKey.isEmpty() && dictValue.isEmpty() && sortStr.isEmpty() && remark.isEmpty()) {
                         continue;
                     }
 
@@ -256,18 +238,11 @@ public class AdminDictController {
                         }
                     }
 
-                    Integer status = parseStatus(statusStr);
-                    if (status == null) {
-                        // 容错：status 为空默认启用
-                        status = 1;
-                    }
-
                     SysDict d = new SysDict();
                     d.setDictType(dt);
                     d.setDictKey(dictKey);
                     d.setDictValue(dictValue);
                     d.setSort(sort);
-                    d.setStatus(status);
                     d.setRemark(remark);
                     newRows.add(d);
                 }
@@ -315,12 +290,12 @@ public class AdminDictController {
                 }
                 target.setDictValue(fromExcel.getDictValue());
                 target.setSort(fromExcel.getSort());
-                target.setStatus(fromExcel.getStatus());
                 target.setRemark(fromExcel.getRemark());
                 updated++;
             }
 
             configFileRepository.saveAllDicts(all);
+            syncRemarksToFormMeta(all);
 
             resp.put("success", true);
             resp.put("message", "导入成功：dictType=" + dt + "，有效更新 " + updated + " 条，跳过 " + skipped + " 条（dictKey 在系统中不存在）");
@@ -379,10 +354,9 @@ public class AdminDictController {
                     String dictKey = formatter.formatCellValue(getCell(row, 0)).trim();
                     String dictValue = formatter.formatCellValue(getCell(row, 1)).trim();
                     String sortStr = formatter.formatCellValue(getCell(row, 2)).trim();
-                    String statusStr = formatter.formatCellValue(getCell(row, 3)).trim();
-                    String remark = formatter.formatCellValue(getCell(row, 4)).trim();
+                    String remark = formatter.formatCellValue(getCell(row, 3)).trim();
 
-                    if (dictKey.isEmpty() && dictValue.isEmpty() && sortStr.isEmpty() && statusStr.isEmpty() && remark.isEmpty()) {
+                    if (dictKey.isEmpty() && dictValue.isEmpty() && sortStr.isEmpty() && remark.isEmpty()) {
                         continue;
                     }
 
@@ -407,17 +381,11 @@ public class AdminDictController {
                         }
                     }
 
-                    Integer status = parseStatus(statusStr);
-                    if (status == null) {
-                        status = 1;
-                    }
-
                     SysDict d = new SysDict();
                     d.setDictType(dt);
                     d.setDictKey(dictKey);
                     d.setDictValue(dictValue);
                     d.setSort(sort);
-                    d.setStatus(status);
                     d.setRemark(remark);
                     newRows.add(d);
                 }
@@ -480,5 +448,97 @@ public class AdminDictController {
         m.put("row", rowNo);
         m.put("message", msg);
         return m;
+    }
+
+    /**
+     * 将数据字典中的 remark 同步回项目内 form_meta_config.json。
+     * 匹配规则：
+     * - dictType = form.mainTable
+     * - dictKey = form.mainTable（表级备注） 或 字段 code（字段备注）
+     */
+    private void syncRemarksToFormMeta(List<SysDict> rows) {
+        if (rows == null) {
+            return;
+        }
+        try {
+            Map<String, String> remarkByTypeAndKey = new HashMap<>();
+            for (SysDict d : rows) {
+                if (d == null) continue;
+                String dt = d.getDictType() == null ? "" : d.getDictType().trim();
+                String dk = d.getDictKey() == null ? "" : d.getDictKey().trim();
+                if (dt.isEmpty() || dk.isEmpty()) continue;
+                String remark = d.getRemark() == null ? "" : d.getRemark().trim();
+                remarkByTypeAndKey.put(dt + "||" + dk, remark);
+            }
+
+            Path metaPath = Paths.get(System.getProperty("user.dir"), "src", "main", "resources", "config", "form_meta_config.json")
+                    .toAbsolutePath()
+                    .normalize();
+            if (!Files.exists(metaPath)) {
+                return;
+            }
+
+            JsonNode root = objectMapper.readTree(Files.newInputStream(metaPath));
+            JsonNode formsNode = root.path("forms");
+            if (!formsNode.isObject()) {
+                return;
+            }
+
+            for (Iterator<Map.Entry<String, JsonNode>> it = formsNode.fields(); it.hasNext(); ) {
+                Map.Entry<String, JsonNode> e = it.next();
+                JsonNode formNode = e.getValue();
+                if (!formNode.isObject()) continue;
+                String mainTable = formNode.path("mainTable").asText("");
+                if (mainTable == null || mainTable.trim().isEmpty()) continue;
+                String dt = mainTable.trim();
+
+                String tableRemark = remarkByTypeAndKey.get(dt + "||" + dt);
+                if (tableRemark != null && formNode instanceof com.fasterxml.jackson.databind.node.ObjectNode) {
+                    ((com.fasterxml.jackson.databind.node.ObjectNode) formNode).put("remark", tableRemark);
+                }
+
+                JsonNode mainFields = formNode.path("mainFields");
+                if (mainFields.isArray()) {
+                    for (JsonNode f : mainFields) {
+                        if (!(f instanceof com.fasterxml.jackson.databind.node.ObjectNode)) continue;
+                        String code = f.path("code").asText("");
+                        if (code == null || code.trim().isEmpty()) continue;
+                        String r = remarkByTypeAndKey.get(dt + "||" + code.trim());
+                        if (r != null) {
+                            ((com.fasterxml.jackson.databind.node.ObjectNode) f).put("remark", r);
+                        }
+                    }
+                }
+
+                JsonNode sons = formNode.path("sons");
+                if (sons.isArray()) {
+                    for (JsonNode s : sons) {
+                        JsonNode fields = s.path("fields");
+                        if (!fields.isArray()) continue;
+                        for (JsonNode f : fields) {
+                            if (!(f instanceof com.fasterxml.jackson.databind.node.ObjectNode)) continue;
+                            String code = f.path("code").asText("");
+                            if (code == null || code.trim().isEmpty()) continue;
+                            String r = remarkByTypeAndKey.get(dt + "||" + code.trim());
+                            if (r != null) {
+                                ((com.fasterxml.jackson.databind.node.ObjectNode) f).put("remark", r);
+                            }
+                        }
+                    }
+                }
+            }
+
+            String pretty = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
+            Matcher m = INLINE_FIELD_WITH_REMARK.matcher(pretty);
+            StringBuffer sb = new StringBuffer();
+            while (m.find()) {
+                String rep = "{ \"primaryKey\": \"" + m.group(1) + "\", \"code\": \"" + m.group(2) + "\", \"label\": \"" + m.group(3) + "\", \"remark\": \"" + m.group(4) + "\" }";
+                m.appendReplacement(sb, Matcher.quoteReplacement(rep));
+            }
+            m.appendTail(sb);
+            Files.write(metaPath, sb.toString().getBytes(StandardCharsets.UTF_8));
+        } catch (Exception ignore) {
+            // 同步 form_meta 失败不应影响主保存链路
+        }
     }
 }

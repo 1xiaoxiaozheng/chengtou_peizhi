@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQL 规则配置器 · 管理后台</title>
+    <title>数据字典管理后台</title>
     <link rel="stylesheet" href="https://unpkg.com/element-plus@2.5.6/dist/index.css"/>
     <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/element-plus@2.5.6/dist/index.full.min.js"></script>
@@ -18,48 +18,46 @@
 </head>
 <body>
 <div id="app" class="page">
-    <h2 style="margin:0 0 8px 0;">FACT · SQL 规则配置器（Query Builder）</h2>
-    <p class="muted" style="margin: 8px 0 16px;">
-        前端职责：通过表单生成配置 → 提交 <code>POST /api/admin/sql-config/save</code>（body 为 <code>SysSqlConfig</code>）。
-        表名/列名均来自 <code>/api/admin/schema/*</code>，禁止手填。
-        外置目录：<code>app.config.external-dir</code>。
-        <a href="/index.html">业务查询页</a>
-    </p>
+    <h2 style="margin:0 0 8px 0;">FACT · 数据字典管理</h2>
 
     <el-tabs v-model="activeTab" type="border-card" @tab-change="onTabChange">
-        <el-tab-pane label="① 数据字典" name="dict">
+        <el-tab-pane label="数据字典" name="dict">
             <el-space direction="vertical" :size="12" style="width:100%;" alignment="stretch">
-                <el-alert type="info" show-icon :closable="false"
-                          title="表格编辑后点“保存全部”（会覆盖服务端 dict 配置）。"/>
-                <el-space wrap>
-                    <el-button type="primary" @click="loadDictWithConfirm">刷新</el-button>
-                    <el-button @click="addDictRow">新增一行</el-button>
-                    <el-button type="success" :loading="dictSaving" @click="saveDict">保存全部</el-button>
-                    <el-tag v-if="dictDirty" type="warning" size="small">未保存</el-tag>
-                </el-space>
-                <div style="border:1px solid #dcdfe6;border-radius:6px;padding:12px 14px;margin:12px 0;background:#f9fafc;">
-                    <div class="section-title" style="margin:0 0 10px 0;">Excel 导入 / 导出（按单个 dictType）</div>
-                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
-                        <span class="muted" style="white-space:nowrap;">选择 dictType</span>
-                        <el-select v-model="dictExcelType" filterable clearable allow-create default-first-option
-                                   placeholder="下拉选类型，或可输入后回车" style="width:240px">
-                            <el-option v-for="t in dictTypes" :key="t" :label="t" :value="t"/>
-                        </el-select>
-                        <el-button type="warning" :disabled="!dictExcelType" :loading="dictExcelExportLoading"
-                                   @click="exportDictExcel">导出 Excel</el-button>
-                        <el-button type="primary" plain :disabled="!dictExcelType" :loading="dictExcelImportLoading"
-                                   @click="openDictImportDialog">导入 Excel</el-button>
+                <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                    <el-space wrap>
+                        <el-button type="default" @click="loadDictWithConfirm">刷新</el-button>
+                        <el-button type="default" @click="addDictRow">新增一行</el-button>
+                        <el-button type="primary" :loading="dictSaving" @click="saveDict">保存全部</el-button>
+                        <el-tag v-if="dictDirty" type="warning" size="small">未保存</el-tag>
+                    </el-space>
+                    <el-space wrap>
+                        <el-button type="default" plain :disabled="!dictViewType" :loading="dictExcelExportLoading"
+                                   @click="exportDictExcel">
+                            <i class="el-icon-download" style="margin-right:4px;"></i>导出 Excel
+                        </el-button>
+                        <el-button type="default" plain :disabled="!dictViewType" :loading="dictExcelImportLoading"
+                                   @click="openDictImportDialog">
+                            <i class="el-icon-upload2" style="margin-right:4px;"></i>导入 Excel
+                        </el-button>
                         <input id="dictImportFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" @change="onDictImportFileChange"/>
-                    </div>
-                    <p class="muted" style="margin:10px 0 0;line-height:1.55;">
-                        导入只更新当前 dictType 中<strong>已存在的 dictKey</strong>；Excel 多余的 key 会跳过，未出现的条目不变。
-                    </p>
+                    </el-space>
                 </div>
                 <el-space wrap style="margin:-4px 0 8px 0;">
-                    <el-input v-model="dictKeyword" clearable placeholder="筛选 dictKey / dictValue / remark" style="width:360px"/>
-                    <el-select v-model="dictViewType" clearable placeholder="当前 dictType（全部）" style="width:240px">
-                        <el-option v-for="t in dictTypes" :key="t" :label="t" :value="t"/>
+                    <!-- 主筛选：表名（dictType / mainTable），来源于 form_meta_config.json -->
+                    <el-select v-model="dictViewType" clearable placeholder="选择表（dictType）" style="width:260px">
+                        <el-option
+                                v-for="t in formMetaTableOptions"
+                                :key="t.tableName"
+                                :label="t.showName + '（' + t.tableName + '）'"
+                                :value="t.tableName"
+                        />
                     </el-select>
+                    <!-- 次筛选：字段名（fieldCode / dictKey），依赖当前表 -->
+                    <el-select v-model="dictFieldFilter" clearable placeholder="选择字段（dictKey/fieldCode）" :disabled="!dictViewType" style="width:260px">
+                        <el-option v-for="f in dictFieldOptions" :key="f.value" :label="f.label" :value="f.value"/>
+                    </el-select>
+                    <!-- 关键字：模糊匹配 dictKey / dictValue / remark -->
+                    <el-input v-model="dictKeyword" clearable placeholder="搜索 dictKey / 字段名 / 备注" style="width:260px"/>
                     <el-tag type="info" size="small">共 {{ (dictRowsFiltered || []).length }} 条</el-tag>
                     <el-popover v-if="dictViewType && (dictTypeUsedBySqlKeys[dictViewType] || []).length>0" placement="bottom" width="420" trigger="hover">
                         <template #reference>
@@ -74,34 +72,25 @@
                     </el-popover>
                 </el-space>
                 <el-table :data="dictRowsFiltered" border stripe size="small" style="width:100%">
-                    <el-table-column prop="dictType" label="字典类型" width="160">
+                    <el-table-column prop="dictType" label="数据库表名称" width="160">
                         <template #default="scope">
                             <el-input v-model="scope.row.dictType" placeholder="如 user_status"/>
                         </template>
                     </el-table-column>
-                    <el-table-column prop="dictKey" label="键" width="120">
-                        <template #default="scope"><el-input v-model="scope.row.dictKey"/></template>
+                    <el-table-column prop="dictKey" label="表名" width="200">
+                        <template #default="scope">
+                            <el-input :model-value="getTableDisplayName(scope.row.dictType)" readonly />
+                        </template>
                     </el-table-column>
-                    <el-table-column prop="dictValue" label="值" min-width="140">
+                    <el-table-column prop="dictValue" label="字段名称" width="140">
                         <template #default="scope"><el-input v-model="scope.row.dictValue"/></template>
                     </el-table-column>
-                    <el-table-column prop="sort" label="排序" width="90">
-                        <template #default="scope">
-                            <el-input-number v-model="scope.row.sort" :min="0" :controls="false" style="width:100%"/>
-                        </template>
-                    </el-table-column>
-                    <el-table-column prop="status" label="状态" width="120">
-                        <template #default="scope">
-                            <el-switch v-model="scope.row.status" :active-value="1" :inactive-value="0"
-                                       active-text="启用" inactive-text="停用"/>
-                        </template>
-                    </el-table-column>
-                    <el-table-column prop="remark" label="备注" min-width="100">
+                    <el-table-column prop="remark" label="字段说明" min-width="100">
                         <template #default="scope"><el-input v-model="scope.row.remark"/></template>
                     </el-table-column>
                     <el-table-column label="操作" width="72" fixed="right">
                         <template #default="scope">
-                            <el-button type="danger" link @click="removeDictRow(scope.$index)">删除</el-button>
+                            <el-button type="danger" link @click="removeDictRow(scope.row)">删除</el-button>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -128,8 +117,6 @@
                         <el-table :data="(dictImportPreview && dictImportPreview.previewRows) || []" border size="small" style="width:100%;">
                             <el-table-column prop="dictKey" label="dictKey" width="140" />
                             <el-table-column prop="dictValue" label="dictValue" min-width="180" show-overflow-tooltip />
-                            <el-table-column prop="sort" label="sort" width="90" />
-                            <el-table-column prop="status" label="status" width="90" />
                             <el-table-column prop="remark" label="remark" min-width="160" show-overflow-tooltip />
                         </el-table>
                     </div>
@@ -145,1603 +132,676 @@
             </el-space>
         </el-tab-pane>
 
-        <!-- 2 SQL 配置列表：入口页，展示已落地的规则（对应外置/内置 sys_sql_config.json） -->
-        <el-tab-pane label="② SQL 配置列表" name="sql-list">
-            <el-space direction="vertical" :size="12" style="width:100%;" alignment="stretch">
-                <el-alert type="warning" show-icon :closable="false">
-                    <template #title>
-                        <span>已保存的查询规则总览：通过 `sql_key` 触发对应查询。</span>
-                    </template>
-                    <p class="muted" style="margin:8px 0 0;line-height:1.5;">
-                        数据来自服务端已落盘配置；点击「编辑」在右侧抽屉中配置详情。
-                    </p>
-                </el-alert>
-                <el-space wrap>
-                    <el-button type="primary" @click="loadSqlConfigList">刷新列表</el-button>
-                    <el-button type="success" @click="goNewSqlConfig">新增配置</el-button>
-                    <el-button type="warning" @click="exportConfig">导出JSON</el-button>
-                    <el-button type="primary" @click="openImportDialog">导入JSON</el-button>
-                    <el-input v-model="sqlListKeyword" clearable placeholder="筛选 sql_key / 表名 / 名称" style="width:280px"/>
-                    <el-select v-model="sqlEnabledFilter" clearable placeholder="启用/禁用" style="width:160px">
-                        <el-option label="启用" :value="1"/>
-                        <el-option label="禁用" :value="0"/>
-                    </el-select>
-                    <el-select v-model="sqlBaseTableFilter" clearable placeholder="表名" style="width:220px">
-                        <el-option v-for="t in sqlBaseTableOptions" :key="t" :label="t" :value="t"/>
-                    </el-select>
-                    <input id="importConfigFile" type="file" accept="application/json" style="display:none" @change="onImportFileChange"/>
-                </el-space>
-                <el-table :data="sqlConfigRowsPaged" border stripe size="small" style="width:100%">
-                    <template #empty>
-                        <el-empty description="暂无配置：请先「新增」或确认外置目录/内置 JSON 是否存在条目"/>
-                    </template>
-                    <el-table-column prop="remark" label="名称（remark）" min-width="140" show-overflow-tooltip>
-                        <template #default="scope">
-                            <span>{{ scope.row.remark || '（未填）' }}</span>
-                        </template>
-                    </el-table-column>
-                    <el-table-column prop="sqlKey" label="sql_key" width="200" show-overflow-tooltip/>
-                    <el-table-column prop="baseTable" label="表名" width="160"/>
-                    <el-table-column label="启用/禁用" width="120" align="center">
-                        <template #default="scope">
-                            <el-tag :type="scope.row.enabled === 0 ? 'danger' : 'success'" size="small">
-                                {{ scope.row.enabled === 0 ? '禁用' : '启用' }}
-                            </el-tag>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="查询字段" width="92" align="center">
-                        <template #default="scope"><span>{{ scope.row._fieldCount }}</span></template>
-                    </el-table-column>
-                    <el-table-column label="条件数" width="80" align="center">
-                        <template #default="scope"><span>{{ scope.row._condCount }}</span></template>
-                    </el-table-column>
-                    <el-table-column label="默认排序" min-width="160" show-overflow-tooltip>
-                        <template #default="scope">
-                            <span class="muted">{{ scope.row._defaultSortField ? (scope.row._defaultSortField + ' ' + (scope.row._defaultSortDir || '')) : '（无）' }}</span>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="操作" width="200" fixed="right">
-                        <template #default="scope">
-                            <el-dropdown trigger="click">
-                                <el-button type="primary" link>更多</el-button>
-                                <template #dropdown>
-                                    <el-dropdown-menu>
-                                        <el-dropdown-item @click="editSqlConfig(scope.row)">编辑</el-dropdown-item>
-                                        <el-dropdown-item @click="toggleSqlEnabled(scope.row)">
-                                            {{ scope.row.enabled === 0 ? '启用' : '禁用' }}
-                                        </el-dropdown-item>
-                                        <el-dropdown-item @click="openSqlDetail(scope.row)">详情</el-dropdown-item>
-                                        <el-dropdown-item divided style="color:#f56c6c" @click="deleteSqlConfigRow(scope.row)">删除</el-dropdown-item>
-                                    </el-dropdown-menu>
-                                </template>
-                            </el-dropdown>
-                        </template>
-                    </el-table-column>
-                </el-table>
-
-                <el-drawer v-model="sqlDetailOpen" size="560px" title="规则详情" :with-header="true" :destroy-on-close="true">
-                    <div v-if="sqlDetailRow">
-                        <div class="muted" style="margin-bottom:8px;">
-                            <span class="muted">sql_key：</span>{{ sqlDetailRow.sqlKey }}
-                        </div>
-                        <div class="muted" style="margin-bottom:8px;">
-                            <span class="muted">表：</span>{{ sqlDetailRow.baseTable || '（未选）' }}
-                        </div>
-                        <div class="muted" style="margin-bottom:8px;display:flex;align-items:center;gap:10px;">
-                            <span class="muted">启用/禁用：</span>
-                            <el-tag :type="sqlDetailRow.enabled === 0 ? 'danger' : 'success'" size="small">
-                                {{ sqlDetailRow.enabled === 0 ? '禁用' : '启用' }}
-                            </el-tag>
-                        </div>
-                        <div class="muted" style="margin:12px 0 6px;">默认排序</div>
-                        <pre class="json-preview">{{ sqlDetailRow.defaultSort || '（无）' }}</pre>
-                        <div class="muted" style="margin:12px 0 6px;">selectableFields</div>
-                        <pre class="json-preview">{{ safePrettyJson(sqlDetailRow.selectableFields) }}</pre>
-                        <div class="muted" style="margin:12px 0 6px;">conditionFields</div>
-                        <pre class="json-preview">{{ safePrettyJson(sqlDetailRow.conditionFields) }}</pre>
-                    </div>
-                </el-drawer>
-
-                <el-pagination
-                        style="margin-top:12px;"
-                        background
-                        layout="total, sizes, prev, pager, next"
-                        :total="(sqlConfigRowsFiltered || []).length"
-                        :page-sizes="[5,10,20,50]"
-                        :page-size="sqlPageSize"
-                        :current-page="sqlPage"
-                        @current-change="(p)=>sqlPage=p"
-                        @size-change="(s)=>{sqlPageSize=s; sqlPage=1;}"/>
-            </el-space>
-        </el-tab-pane>
-        <el-tab-pane label="③ Worker 运维" name="worker">
-            <el-space direction="vertical" :size="12" style="width:100%;" alignment="stretch">
-                <el-alert type="info" show-icon :closable="false" title="用于观察中间表消费状态，并手动触发一次 Worker。"/>
-                <el-space wrap>
-                    <el-button type="primary" :loading="workerLoading" @click="loadWorkerStatus">刷新状态</el-button>
-                    <el-button type="success" :loading="workerRunLoading" @click="runWorkerOnce">手动执行一次</el-button>
-                    <el-switch v-model="workerAutoRefresh" active-text="自动刷新" inactive-text="手动刷新"/>
-                    <el-select v-model="workerAutoRefreshMs" style="width:140px" :disabled="!workerAutoRefresh">
-                        <el-option label="5秒" :value="5000"/>
-                        <el-option label="10秒" :value="10000"/>
-                        <el-option label="30秒" :value="30000"/>
-                    </el-select>
-                    <span class="muted">接口：GET /api/admin/worker/status，POST /api/admin/worker/run-once</span>
-                </el-space>
-                <el-space wrap>
-                    <el-select v-model="workerFailedTable" style="width:220px">
-                        <el-option label="interest_change_notify" value="interest"/>
-                        <el-option label="Middle_Insert_Records" value="daily"/>
-                        <el-option label="Middle_Installment_Records" value="installment"/>
-                    </el-select>
-                    <el-select v-model="workerFailedLimit" style="width:140px">
-                        <el-option label="10条" :value="10"/>
-                        <el-option label="20条" :value="20"/>
-                        <el-option label="50条" :value="50"/>
-                    </el-select>
-                    <el-button :loading="workerFailedLoading" @click="loadWorkerFailedSamples">加载失败样本</el-button>
-                    <el-button type="warning" :loading="workerResetLoading" @click="resetWorkerFailed">重置该表失败为待处理</el-button>
-                </el-space>
-
-                <el-row :gutter="12">
-                    <el-col :span="8">
-                        <el-card shadow="never">
-                            <div class="section-title">基础配置</div>
-                            <div class="muted">enabled：<el-tag size="small" :type="workerEnabledTagType">{{ workerStatus.enabled ? 'true' : 'false' }}</el-tag></div>
-                            <div class="muted" style="margin-top:8px;">batchSize：{{ workerStatus.batchSize ?? '-' }}</div>
-                            <div class="muted" style="margin-top:8px;">maxRetry：{{ workerStatus.maxRetry ?? '-' }}</div>
-                        </el-card>
-                    </el-col>
-                    <el-col :span="8">
-                        <el-card shadow="never">
-                            <div class="section-title">待处理数量</div>
-                            <div class="muted">interest_change_notify：{{ workerStatus.pendingInterest ?? 0 }}</div>
-                            <div class="muted" style="margin-top:8px;">Middle_Insert_Records：{{ workerStatus.pendingDaily ?? 0 }}</div>
-                            <div class="muted" style="margin-top:8px;">Middle_Installment_Records：{{ workerStatus.pendingInstallment ?? 0 }}</div>
-                            <div class="muted" style="margin-top:8px;">失败总量（interest/daily/installment）：{{ workerStatus.failedInterest ?? 0 }}/{{ workerStatus.failedDaily ?? 0 }}/{{ workerStatus.failedInstallment ?? 0 }}</div>
-                            <div class="muted" style="margin-top:8px;">重试上限命中（daily/installment）：{{ workerStatus.retryLimitHitDaily ?? 0 }}/{{ workerStatus.retryLimitHitInstallment ?? 0 }}</div>
-                        </el-card>
-                    </el-col>
-                    <el-col :span="8">
-                        <el-card shadow="never">
-                            <div class="section-title">上次执行概览</div>
-                            <div class="muted">elapsedMs：{{ (workerStatus.lastRun && workerStatus.lastRun.elapsedMs) ?? 0 }}</div>
-                            <div class="muted" style="margin-top:8px;">
-                                interest 成功/失败/跳过：
-                                {{ (workerStatus.lastRun && workerStatus.lastRun.interestSuccess) ?? 0 }}/{{ (workerStatus.lastRun && workerStatus.lastRun.interestFail) ?? 0 }}/{{ (workerStatus.lastRun && workerStatus.lastRun.interestSkippedByRetryLimit) ?? 0 }}
-                            </div>
-                            <div class="muted" style="margin-top:8px;">
-                                daily 成功/失败/跳过：
-                                {{ (workerStatus.lastRun && workerStatus.lastRun.dailySuccess) ?? 0 }}/{{ (workerStatus.lastRun && workerStatus.lastRun.dailyFail) ?? 0 }}/{{ (workerStatus.lastRun && workerStatus.lastRun.dailySkippedByRetryLimit) ?? 0 }}
-                            </div>
-                            <div class="muted" style="margin-top:8px;">
-                                installment 成功/失败/跳过：
-                                {{ (workerStatus.lastRun && workerStatus.lastRun.installmentSuccess) ?? 0 }}/{{ (workerStatus.lastRun && workerStatus.lastRun.installmentFail) ?? 0 }}/{{ (workerStatus.lastRun && workerStatus.lastRun.installmentSkippedByRetryLimit) ?? 0 }}
-                            </div>
-                        </el-card>
-                    </el-col>
-                </el-row>
-
-                <el-card shadow="never">
-                    <div class="section-title">失败记录样本（{{ workerFailedTable }}）</div>
-                    <el-table :data="workerFailedSamples" border stripe size="small" style="width:100%;">
-                        <el-table-column prop="id" label="id" width="90"/>
-                        <el-table-column prop="target_table_id" label="target_table_id / source_id" min-width="150">
-                            <template #default="scope">{{ scope.row.target_table_id || scope.row.source_id || '-' }}</template>
-                        </el-table-column>
-                        <el-table-column prop="monitored_field" label="monitored_field / bill_no" min-width="220" show-overflow-tooltip>
-                            <template #default="scope">{{ scope.row.monitored_field || scope.row.bill_no || '-' }}</template>
-                        </el-table-column>
-                        <el-table-column prop="retry_count" label="retry" width="90"/>
-                        <el-table-column prop="fail_reason" label="fail_reason" min-width="220" show-overflow-tooltip/>
-                        <el-table-column prop="process_time" label="process_time" width="180" show-overflow-tooltip/>
-                    </el-table>
-                </el-card>
-
-                <el-card shadow="never">
-                    <div class="section-title">状态原始 JSON</div>
-                    <pre class="json-preview">{{ workerStatusText }}</pre>
-                </el-card>
-            </el-space>
-        </el-tab-pane>
     </el-tabs>
-
-    <el-drawer v-model="sqlEditOpen" :title="sqlEditTitle" size="72%" :with-header="true" :destroy-on-close="false" :before-close="handleSqlEditBeforeClose">
-        <div style="position:sticky;top:0;z-index:10;background:#fff;padding:10px 0 12px;border-bottom:1px solid #ebeef5;margin-bottom:12px;">
-            <el-space wrap>
-                <el-button type="success" :loading="sqlSaving" @click="saveSqlConfig">保存</el-button>
-                <el-button type="primary" :loading="trialLoading" @click="executeTrial">试查</el-button>
-                <el-button @click="closeSqlEditWithConfirm">关闭</el-button>
-                <el-tag v-if="sqlDirty" type="warning" size="small">未保存</el-tag>
-                <span class="muted" v-if="sqlForm.enabled === 0">当前规则已禁用，试查会失败</span>
-            </el-space>
-        </div>
-        <el-space direction="vertical" :size="16" style="width:100%;" alignment="stretch">
-            <el-alert type="success" show-icon :closable="false"
-                      title="Query Builder：通过白名单表/字段与字典绑定生成条件。"/>
-
-            <el-card shadow="never">
-                <div class="section-title">① 基本信息</div>
-                <el-form label-width="100px" style="max-width:640px;">
-                    <el-form-item label="sql_key" required>
-                        <el-input v-model="sqlForm.sqlKey" placeholder="唯一标识，全局不可重复"/>
-                    </el-form-item>
-                    <el-form-item label="名称">
-                        <el-input v-model="sqlForm.remark" placeholder="展示用名称，写入 remark 字段"/>
-                    </el-form-item>
-                    <el-form-item label="启用/禁用">
-                        <el-switch v-model="sqlForm.enabled" :active-value="1" :inactive-value="0"
-                                   active-text="启用" inactive-text="禁用"/>
-                    </el-form-item>
-                </el-form>
-            </el-card>
-
-            <el-card shadow="never">
-                <div class="section-title">② 表选择</div>
-                <el-space wrap>
-                    <el-select v-model="sqlForm.baseTable" filterable placeholder="选择表"
-                               style="width:420px" @change="onTableChanged">
-                        <el-option v-for="t in tableOptions" :key="t" :label="t" :value="t"/>
-                    </el-select>
-                    <el-button type="primary" :loading="tablesLoading" @click="loadTables">加载表列表</el-button>
-                </el-space>
-                <p class="muted mb-12">切换表会清空：已选字段、条件、排序，并重新拉列。</p>
-            </el-card>
-
-            <el-card shadow="never">
-                <div class="section-title">③ 可查询字段</div>
-                <el-button type="primary" link :loading="colsLoading" :disabled="!sqlForm.baseTable" @click="loadColumns">
-                    加载可查询字段
-                </el-button>
-                <div v-if="!sqlForm.baseTable" class="muted">请先选择表</div>
-                <el-checkbox-group v-else v-model="sqlForm.selectedFields" class="mb-12"
-                                   style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
-                    <el-checkbox v-for="c in columnOptions" :key="c" :label="c">{{ c }}</el-checkbox>
-                </el-checkbox-group>
-            </el-card>
-
-            <el-card shadow="never">
-                <div class="section-title">④ 查询条件</div>
-                <el-button type="primary" link :disabled="sqlForm.selectedFields.length===0" @click="addCondRow">添加条件</el-button>
-                <span v-if="sqlForm.selectedFields.length===0" class="muted">请先勾选可查询字段</span>
-                <el-table :data="sqlForm.conditions" border size="small" style="width:100%;margin-top:8px;">
-                    <el-table-column label="字段" width="220">
-                        <template #default="scope">
-                            <el-select v-model="scope.row.field" filterable placeholder="必选" style="width:100%">
-                                <el-option v-for="f in sqlForm.selectedFields" :key="f" :label="f" :value="f"/>
-                            </el-select>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="操作符" width="150">
-                        <template #default="scope">
-                            <el-select v-model="scope.row.op" style="width:100%">
-                                <el-option label="等于 eq" value="eq"/>
-                                <el-option label="模糊 like" value="like"/>
-                                <el-option label="范围 between" value="between"/>
-                            </el-select>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="绑定字典 dictType" min-width="200">
-                        <template #default="scope">
-                            <el-select v-model="scope.row.dict" filterable clearable placeholder="选择 dictType"
-                                       style="width:100%">
-                                <el-option v-for="dt in dictTypes" :key="dt" :label="dt" :value="dt"/>
-                            </el-select>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="操作" width="72" fixed="right">
-                        <template #default="scope">
-                            <el-button type="danger" link @click="removeCondRow(scope.$index)">删除</el-button>
-                        </template>
-                    </el-table-column>
-                </el-table>
-            </el-card>
-
-            <el-card shadow="never">
-                <div class="section-title">⑤ 排序</div>
-                <el-form inline>
-                    <el-form-item label="排序字段">
-                        <el-select v-model="sqlForm.sortField" filterable clearable placeholder="从已选字段中选"
-                                   style="width:220px" :disabled="sqlForm.selectedFields.length===0">
-                            <el-option v-for="f in sqlForm.selectedFields" :key="f" :label="f" :value="f"/>
-                        </el-select>
-                    </el-form-item>
-                    <el-form-item label="方向">
-                        <el-select v-model="sqlForm.sortDir" style="width:120px">
-                            <el-option label="升序 ASC" value="ASC"/>
-                            <el-option label="降序 DESC" value="DESC"/>
-                        </el-select>
-                    </el-form-item>
-                </el-form>
-            </el-card>
-
-            <el-card shadow="never">
-                <div class="section-title">⑥ 预览</div>
-                <el-collapse>
-                    <el-collapse-item title="逻辑配置（易读）" name="logic">
-                        <pre class="json-preview" style="margin-top:6px;">{{ logicalJsonText }}</pre>
-                    </el-collapse-item>
-                    <el-collapse-item title="保存请求体（驼峰）" name="body">
-                        <pre class="json-preview" style="margin-top:6px;">{{ saveBodyJsonText }}</pre>
-                    </el-collapse-item>
-                </el-collapse>
-            </el-card>
-
-            <el-card shadow="never">
-                <el-collapse v-model="sqlEditCollapseActive">
-                    <el-collapse-item title="⑦ 试查（默认收起）" name="trial">
-                        <el-alert type="info" show-icon :closable="false" title="填写条件值后可执行试查（不影响保存配置）。"/>
-                        <div class="muted" style="margin:10px 0 8px;">条件参数（根据配置生成）</div>
-                        <el-table :data="trialParams" border size="small" style="width:100%;margin-bottom:12px;">
-                            <el-table-column label="字段" width="180">
-                                <template #default="scope">
-                                    <el-tag size="small">{{ scope.row.field || '-' }}</el-tag>
-                                </template>
-                            </el-table-column>
-                            <el-table-column label="操作符" width="140">
-                                <template #default="scope">
-                                    <el-tag size="small" type="info">{{ scope.row.op || '-' }}</el-tag>
-                                </template>
-                            </el-table-column>
-                            <el-table-column label="字典绑定 dictType" width="200">
-                                <template #default="scope">
-                                    <span>{{ scope.row.dict || '-' }}</span>
-                                </template>
-                            </el-table-column>
-                            <el-table-column label="值" min-width="240">
-                                <template #default="scope">
-                                    <div v-if="scope.row.op === 'between'" style="display:flex;gap:8px;">
-                                        <el-input size="small" v-model="scope.row.valueFrom" placeholder="from" style="flex:1;" />
-                                        <el-input size="small" v-model="scope.row.valueTo" placeholder="to" style="flex:1;" />
-                                    </div>
-                                    <div v-else>
-                                        <el-select v-if="scope.row.dict" size="small"
-                                                   v-model="scope.row.value" placeholder="选择 dictKey"
-                                                   style="width:100%;">
-                                            <el-option v-for="item in (trialDictOptionsByType[scope.row.dict] || [])"
-                                                       :key="item.dictKey"
-                                                       :label="item.dictValue"
-                                                       :value="item.dictKey"/>
-                                        </el-select>
-                                        <el-input v-else size="small" v-model="scope.row.value" placeholder="输入值" />
-                                    </div>
-                                </template>
-                            </el-table-column>
-                        </el-table>
-
-                        <el-space wrap>
-                            <el-button type="primary" :loading="trialLoading" @click="executeTrial">执行试查</el-button>
-                            <el-button @click="trialResultText=''">清空结果</el-button>
-                        </el-space>
-                        <div class="muted" style="margin:12px 0 6px;">试查结果</div>
-                        <pre class="json-preview">{{ trialResultText }}</pre>
-                    </el-collapse-item>
-                </el-collapse>
-            </el-card>
-        </el-space>
-    </el-drawer>
 </div>
 
 <script>
-    const { createApp, ref, reactive, onMounted, computed, watch } = Vue;
+const { createApp, ref, onMounted, computed, watch } = Vue;
 
-    /** 与当前后端一致的前缀，便于日后抽成配置 */
-    const API = {
-        dictList: '/api/admin/dict/list',
-        dictSave: '/api/admin/dict/save',
-        dictTypes: '/api/admin/dict/types',
-        dictExport: '/api/admin/dict/export',
-        dictImport: '/api/admin/dict/import',
-        dictImportPreview: '/api/admin/dict/import/preview',
-        sqlList: '/api/admin/sql-config/list',
-        sqlOne: (k) => '/api/admin/sql-config/' + encodeURIComponent(k),
-        sqlSave: '/api/admin/sql-config/save',
-        sqlDelete: (k) => '/api/admin/sql-config/' + encodeURIComponent(k),
-        configExport: '/api/admin/config/export',
-        configImport: '/api/admin/config/import',
-        workerStatus: '/api/admin/worker/status',
-        workerRunOnce: '/api/admin/worker/run-once',
-        workerFailedSamples: (table, limit) => '/api/admin/worker/failed-samples?table=' + encodeURIComponent(table) + '&limit=' + encodeURIComponent(limit),
-        workerResetFailed: '/api/admin/worker/reset-failed',
-        querySql: (k) => '/api/query/' + encodeURIComponent(k),
-        dictByType: (t) => '/api/dict/' + encodeURIComponent(t),
-        schemaTables: '/api/admin/schema/tables',
-        schemaColumns: (t) => '/api/admin/schema/columns?table=' + encodeURIComponent(t)
-    };
+const API = {
+    dictList: '/api/admin/dict/list',
+    dictSave: '/api/admin/dict/save',
+    dictTypes: '/api/admin/dict/types',
+    dictExport: '/api/admin/dict/export',
+    dictImport: '/api/admin/dict/import',
+    dictImportPreview: '/api/admin/dict/import/preview',
+    metaConfigFile: '/api/admin/meta/config'
+};
 
-    createApp({
-        setup() {
-            const activeTab = ref('dict');
+const STATIC_FORM_META_TABLE_OPTIONS = [
+    {
+        value: 'formmain_0026',
+        label: '模拟付息（formmain_0026）',
+        tableName: 'formmain_0026',
+        showName: '模拟付息',
+        remark: '',
+        fields: [
+            { value: 'field0009', label: '关联贷款项目（field0009）', showName: '关联贷款项目', remark: '' },
+            { value: 'field0022', label: '贷款项目编码（field0022）', showName: '贷款项目编码', remark: '' },
+            { value: 'field0010', label: '表单视图引用（field0010）', showName: '表单视图引用', remark: '' },
+            { value: 'field0011', label: '下柜资金合计（field0011）', showName: '下柜资金合计', remark: '' },
+            { value: 'field0012', label: '贷款余额合计（field0012）', showName: '贷款余额合计', remark: '' },
+            { value: 'field0013', label: '计划还本合计（field0013）', showName: '计划还本合计', remark: '' },
+            { value: 'field0014', label: '模拟付息合计（field0014）', showName: '模拟付息合计', remark: '' },
+            { value: 'field0023', label: '日利息计算控件1（field0023）', showName: '日利息计算控件1', remark: '' },
+            { value: 'field0024', label: '是否保存数据（field0024）', showName: '是否保存数据', remark: '' },
+            { value: 'field0026', label: '贷款开始日期（field0026）', showName: '贷款开始日期', remark: '' },
+            { value: 'field0027', label: '贷款结束日期（field0027）', showName: '贷款结束日期', remark: '' },
+            { value: 'field0016', label: '时间（field0016）', showName: '时间', remark: '' },
+            { value: 'field0017', label: '下柜资金（field0017）', showName: '下柜资金', remark: '' },
+            { value: 'field0018', label: '贷款余额（field0018）', showName: '贷款余额', remark: '' },
+            { value: 'field0019', label: '计划还本（field0019）', showName: '计划还本', remark: '' },
+            { value: 'field0020', label: '模拟付息（field0020）', showName: '模拟付息', remark: '' },
+            { value: 'field0021', label: '备注-还款计划（field0021）', showName: '备注-还款计划', remark: '' }
+        ]
+    },
+    {
+        value: 'formmain_0039',
+        label: '还款计划表存储表（formmain_0039）',
+        tableName: 'formmain_0039',
+        showName: '还款计划表存储表',
+        remark: '',
+        fields: [
+            { value: 'field0001', label: '单据编号（field0001）', showName: '单据编号', remark: '' },
+            { value: 'field0012', label: '最新利率（field0012）', showName: '最新利率', remark: '' },
+            { value: 'field0013', label: '还本模式（field0013）', showName: '还本模式', remark: '' },
+            { value: 'field0014', label: '付息模式（field0014）', showName: '付息模式', remark: '' },
+            { value: 'field0042', label: '利率生效时间（field0042）', showName: '利率生效时间', remark: '' },
+            { value: 'field0034', label: '下柜资金合计（field0034）', showName: '下柜资金合计', remark: '' },
+            { value: 'field0027', label: '下柜资金（field0027）', showName: '下柜资金', remark: '' },
+            { value: 'field0029', label: '还本（field0029）', showName: '还本', remark: '' }
+        ]
+    },
+    {
+        value: 'formmain_0029',
+        label: '还款计划表（每日）（formmain_0029）',
+        tableName: 'formmain_0029',
+        showName: '还款计划表（每日）',
+        remark: '',
+        fields: [
+            { value: 'field0001', label: '单据编号（field0001）', showName: '单据编号', remark: '' },
+            { value: 'field0042', label: '最新利率（field0042）', showName: '最新利率', remark: '' },
+            { value: 'field0013', label: '还本模式（field0013）', showName: '还本模式', remark: '' },
+            { value: 'field0014', label: '付息模式（field0014）', showName: '付息模式', remark: '' },
+            { value: 'field0041', label: '利率生效时间（field0041）', showName: '利率生效时间', remark: '' },
+            { value: 'field0034', label: '下柜资金合计（field0034）', showName: '下柜资金合计', remark: '' },
+            { value: 'field0027', label: '下柜资金（field0027）', showName: '下柜资金', remark: '' },
+            { value: 'field0029', label: '还本（field0029）', showName: '还本', remark: '' }
+        ]
+    }
+];
 
-            const dictRows = ref([]);
-                    const dictKeyword = ref('');
-                    const dictViewType = ref('');
-            const dictSaving = ref(false);
-            const dictTypes = ref([]);
-            const dictExcelType = ref('');
-            const dictExcelImportLoading = ref(false);
-            const dictExcelExportLoading = ref(false);
-            const dictImportPreviewOpen = ref(false);
-            const dictImportPreview = ref(null); // {updated, skipped, total, previewRows}
-            const dictImportErrors = ref([]); // [{row, message}]
-            const dictImportPendingFile = ref(null);
+createApp({
+    setup() {
+        const isFileMode = window.location.protocol === 'file:';
+        const activeTab = ref('dict');
+        const dictRows = ref([]);
+        const dictKeyword = ref('');
+        const dictViewType = ref('');
+        const dictSaving = ref(false);
+        const dictTypes = ref([]);
+        const dictExcelType = ref('');
+        const dictExcelImportLoading = ref(false);
+        const dictExcelExportLoading = ref(false);
+        const dictImportPreviewOpen = ref(false);
+        const dictImportPreview = ref(null);
+        const dictImportErrors = ref([]);
+        const dictImportPendingFile = ref(null);
+        const formMetaTableOptions = ref([]);
+        // 字典筛选：字段维度（fieldCode）
+        const dictFieldFilter = ref('');
+        const dictFieldOptions = computed(() => {
+            const vt = String(dictViewType.value || '').trim();
+            if (!vt) return [];
+            const one = (formMetaTableOptions.value || []).find(x => x && String(x.tableName || '').trim() === vt);
+            if (!one || !Array.isArray(one.fields)) return [];
+            return one.fields.map(f => ({
+                value: String((f && f.value) || '').trim(),
+                label: String((f && f.label) || '').trim() || String((f && f.value) || '').trim()
+            })).filter(x => x.value);
+        });
+        const dictDirty = ref(false);
+        const dictSnapshotJson = ref('[]');
+        const dictTypeUsedBySqlKeys = computed(() => ({}));
+        function dedupDictRows(rows) {
+            const map = new Map();
+            for (const r of (rows || [])) {
+                if (!r) continue;
+                const dt = String((r && r.dictType) || '').trim();
+                const dk = String((r && r.dictKey) || '').trim();
+                const key = dt + '||' + dk;
+                map.set(key, r); // 后写覆盖前写，保留用户最后一次编辑
+            }
+            return Array.from(map.values());
+        }
+        function getTableDisplayName(dictType) {
+            const dt = String(dictType || '').trim();
+            if (!dt) return '';
+            const one = (formMetaTableOptions.value || []).find(x => x && String(x.tableName || '').trim() === dt);
+            return one ? String(one.showName || one.tableName || dt) : dt;
+        }
+        function findMetaRemark(dictType, dictKey) {
+            const dt = String(dictType || '').trim();
+            const dk = String(dictKey || '').trim();
+            if (!dt || !dk) return '';
+            const t = (formMetaTableOptions.value || []).find(x => x && String(x.tableName || '').trim() === dt);
+            if (!t) return '';
+            if (String(t.tableName || '').trim() === dk) return String(t.remark || '').trim();
+            const f = (Array.isArray(t.fields) ? t.fields : []).find(x => x && String(x.value || '').trim() === dk);
+            return f ? String(f.remark || '').trim() : '';
+        }
 
-            const sqlConfigRows = ref([]);
-            const sqlListKeyword = ref('');
-                    const sqlEnabledFilter = ref('');
-                    const sqlBaseTableFilter = ref('');
-                    const sqlDetailOpen = ref(false);
-                    const sqlDetailRow = ref(null);
-            const sqlEditOpen = ref(false);
-            const sqlEditTitle = ref('SQL 规则编辑');
-            const sqlEditCollapseActive = ref([]); // 默认收起
-            const sqlPage = ref(1);
-            const sqlPageSize = ref(10);
-            const tableOptions = ref([]);
-            const tablesLoading = ref(false);
-            const columnOptions = ref([]);
-            const colsLoading = ref(false);
-            const sqlSaving = ref(false);
-            const trialLoading = ref(false);
-            const trialResultText = ref(''); // 展示试查返回内容（JSON）
-            const trialDictOptionsByType = reactive({});
-            const workerLoading = ref(false);
-            const workerRunLoading = ref(false);
-            const workerStatus = ref({});
-            const workerAutoRefresh = ref(true);
-            const workerAutoRefreshMs = ref(10000);
-            const workerTimer = ref(null);
-            const workerFailedTable = ref('daily');
-            const workerFailedLimit = ref(20);
-            const workerFailedLoading = ref(false);
-            const workerResetLoading = ref(false);
-            const workerFailedSamples = ref([]);
-
-            const sqlForm = reactive({
-                sqlKey: '',
-                baseTable: '',
-                selectedFields: [],
-                conditions: [],
-                sortField: '',
-                sortDir: 'DESC',
-                enabled: 1,
-                remark: ''
+        async function apiGet(url) {
+            if (isFileMode) {
+                return { success: false, message: 'file 模式不调用后端' };
+            }
+            const r = await fetch(url);
+            return r.json();
+        }
+        async function apiPost(url, body) {
+            if (isFileMode) {
+                return { success: false, message: 'file 模式不调用后端' };
+            }
+            const r = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
             });
+            return r.json();
+        }
 
-            const trialParams = ref([]);
-            const sqlEditingOriginal = ref(null); // 用于保存时输出变更摘要（前端展示）
-            const dictTypeUsedBySqlKeys = computed(() => {
-                const map = {};
-                const rows = sqlConfigRows.value || [];
-                for (const r of rows) {
-                    if (!r || !r.sqlKey) continue;
-                    let condArr = [];
-                    try {
-                        condArr = JSON.parse(r.conditionFields || '[]');
-                    } catch (e) {
-                        condArr = [];
-                    }
-                    for (const c of (condArr || [])) {
-                        const dt = c && c.dict != null ? String(c.dict).trim() : '';
-                        if (!dt) continue;
-                        if (!map[dt]) map[dt] = [];
-                        if (!map[dt].includes(r.sqlKey)) {
-                            map[dt].push(r.sqlKey);
-                        }
-                    }
-                }
-                return map;
+        const dictRowsFiltered = computed(() => {
+            const kw = (dictKeyword.value || '').trim().toLowerCase();
+            const vt = (dictViewType.value || '').trim();      // 表名（dictType / mainTable）
+            const field = (dictFieldFilter.value || '').trim(); // 字段名（fieldCode / dictKey）
+            // 未选择表时不显示任何行（主筛选）
+            if (!vt) return [];
+            // 前端保护：同一 dictType+dictKey 只展示一条，避免本地编辑态出现重复视觉行
+            const dedupRows = dedupDictRows(dictRows.value || []);
+            return dedupRows.filter(r => {
+                const dt0 = String((r && r.dictType) || '').trim();
+                const dk0 = String((r && r.dictKey) || '').trim();
+                // 1️⃣ 表筛选：只看当前表
+                if (dt0 !== vt) return false;
+                // 2️⃣ 字段筛选：如果选了 field，只看该字段
+                if (field && dk0 !== field) return false;
+                // 3️⃣ 关键字：模糊匹配 dictKey / dictValue / remark，忽略大小写
+                if (!kw) return true;
+                const k = dk0.toLowerCase();
+                const v = String((r && r.dictValue) || '').toLowerCase();
+                const rm = String((r && r.remark) || '').toLowerCase();
+                return k.includes(kw) || v.includes(kw) || rm.includes(kw);
             });
+        });
 
-            // SQL 列表筛选/分页记忆（localStorage）
-            const SQL_LIST_STATE_KEY = 'fact_admin_sql_list_state_v1';
-            function loadSqlListState() {
-                try {
-                    const raw = localStorage.getItem(SQL_LIST_STATE_KEY);
-                    if (!raw) return;
-                    const s = JSON.parse(raw);
-                    if (s && typeof s === 'object') {
-                        if (typeof s.kw === 'string') sqlListKeyword.value = s.kw;
-                        if (s.enabled === 0 || s.enabled === 1 || s.enabled === '' || s.enabled == null) sqlEnabledFilter.value = s.enabled;
-                        if (typeof s.baseTable === 'string') sqlBaseTableFilter.value = s.baseTable;
-                        if (typeof s.pageSize === 'number' && s.pageSize > 0) sqlPageSize.value = s.pageSize;
-                    }
-                } catch (e) {
-                }
+        function deriveDictTypesFromDictRows() {
+            const set = new Set();
+            for (const r of (dictRows.value || [])) {
+                const dt = String((r && r.dictType) || '').trim();
+                if (dt) set.add(dt);
             }
-            function saveSqlListState() {
-                try {
-                    localStorage.setItem(SQL_LIST_STATE_KEY, JSON.stringify({
-                        kw: sqlListKeyword.value || '',
-                        enabled: sqlEnabledFilter.value,
-                        baseTable: sqlBaseTableFilter.value || '',
-                        pageSize: sqlPageSize.value
-                    }));
-                } catch (e) {
-                }
-            }
+            return Array.from(set);
+        }
 
-            // SQL 编辑抽屉未保存拦截
-            const sqlDirty = ref(false);
-            const sqlSnapshotJson = ref('');
-            function snapshotSqlForm() {
-                try {
-                    sqlSnapshotJson.value = JSON.stringify(buildSaveBody());
-                    sqlDirty.value = false;
-                } catch (e) {
-                    sqlSnapshotJson.value = '';
-                    sqlDirty.value = false;
+        async function loadDictTypes() {
+            let fromApi = [];
+            try {
+                const res = await apiGet(API.dictTypes);
+                if (res && res.success) fromApi = res.data || [];
+            } catch (e) {}
+
+            // 兼容后端可能返回 array / object 包装（如 {types:[...]} 或 map）
+            const toArray = (v) => {
+                if (Array.isArray(v)) return v;
+                if (v == null) return [];
+                if (typeof v === 'object') {
+                    if (Array.isArray(v.types)) return v.types;
+                    if (Array.isArray(v.rows)) return v.rows;
+                    if (Array.isArray(v.list)) return v.list;
+                    return Object.values(v);
                 }
+                return [];
+            };
+
+            const apiTypes = toArray(fromApi)
+                .map(t => String(t || '').trim())
+                .filter(Boolean);
+            const localTypes = deriveDictTypesFromDictRows();
+            dictTypes.value = Array.from(new Set([].concat(apiTypes, localTypes)));
+            if (!dictExcelType.value && dictTypes.value.length > 0) dictExcelType.value = dictTypes.value[0];
+        }
+
+        async function loadDict() {
+            const res = await apiGet(API.dictList);
+            if (!res.success) {
+                ElementPlus.ElMessage.error(res.message || '加载字典失败');
+                return;
             }
-            watch(
-                () => [sqlForm.sqlKey, sqlForm.baseTable, sqlForm.enabled, sqlForm.remark, sqlForm.sortField, sqlForm.sortDir, sqlForm.selectedFields, sqlForm.conditions],
-                () => {
-                    if (!sqlEditOpen.value) return;
-                    try {
-                        const cur = JSON.stringify(buildSaveBody());
-                        sqlDirty.value = cur !== (sqlSnapshotJson.value || '');
-                    } catch (e) {
-                        sqlDirty.value = true;
-                    }
-                },
-                { deep: true }
+            // 兼容多种后端返回结构：[] / {rows:[]} / {list:[]} / {records:[]}
+            const raw = res.data;
+            const rows = Array.isArray(raw)
+                ? raw
+                : (raw && Array.isArray(raw.rows)) ? raw.rows
+                : (raw && Array.isArray(raw.list)) ? raw.list
+                : (raw && Array.isArray(raw.records)) ? raw.records
+                : [];
+
+            dictRows.value = rows.map(d => ({
+                dictType: d.dictType || '',
+                dictKey: d.dictKey || '',
+                dictValue: d.dictValue || '',
+                remark: (!d.remark || String(d.remark).trim() === '来源: form_meta_config')
+                    ? (findMetaRemark(d.dictType, d.dictKey) || d.remark || '')
+                    : (d.remark || '')
+            }));
+            dictSnapshotJson.value = JSON.stringify(dictRows.value || []);
+            dictDirty.value = false;
+            await loadDictTypes();
+        }
+
+        watch(dictRows, () => {
+            try {
+                dictDirty.value = JSON.stringify(dictRows.value || []) !== (dictSnapshotJson.value || '[]');
+            } catch (e) {
+                dictDirty.value = true;
+            }
+        }, { deep: true });
+
+        async function confirmDiscardDictEditsIfNeeded(actionName) {
+            if (!dictDirty.value) return true;
+            try {
+                await ElementPlus.ElMessageBox.confirm(
+                    '数据字典存在未保存修改，是否继续' + (actionName ? ('（' + actionName + '）') : '') + '？未保存内容将丢失。',
+                    '未保存修改',
+                    { type: 'warning' }
+                );
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function loadDictWithConfirm() {
+            const ok = await confirmDiscardDictEditsIfNeeded('刷新');
+            if (!ok) return;
+            await loadDict();
+        }
+
+        // 根据当前选择的表/字段，确保 dictRows 中至少有一条对应记录（如果没有则自动补一行）
+        function ensureRowForCurrentSelection() {
+            const table = String(dictViewType.value || '').trim();
+            if (!table) return;
+
+            const metaTable = (formMetaTableOptions.value || []).find(
+                x => x && String(x.tableName || '').trim() === table
             );
-            async function closeSqlEditWithConfirm() {
-                if (!sqlDirty.value) {
-                    sqlEditOpen.value = false;
-                    return true;
+            if (!metaTable) return;
+
+            const fieldCode = String(dictFieldFilter.value || '').trim();
+            const fields = Array.isArray(metaTable.fields) ? metaTable.fields : [];
+
+            // 情况一：只选了表（未选字段）
+            // 期望：把该表下所有字段都拉出来一行一行配置；
+            // 如果之前已经有部分字段的字典行，只补“缺的那几项”即可
+            if (!fieldCode) {
+                for (const f of fields) {
+                    if (!f) continue;
+                    const code = String((f.value || f.code || '')).trim();
+                    if (!code) continue;
+                    const exists = (dictRows.value || []).some(r =>
+                        String((r && r.dictType) || '').trim() === table &&
+                        String((r && r.dictKey) || '').trim() === code
+                    );
+                    if (exists) continue;
+                    const labelName = String((f.showName || f.label || '')).trim();
+                    const metaRemark = String((f.remark || '')).trim();
+                    dictRows.value.push({
+                        dictType: table,
+                        dictKey: code,
+                        dictValue: code,
+                        remark: metaRemark || labelName || ''
+                    });
                 }
-                try {
-                    await ElementPlus.ElMessageBox.confirm('SQL 规则存在未保存修改，确定关闭？', '未保存修改', { type: 'warning' });
-                    sqlEditOpen.value = false;
-                    return true;
-                } catch (e) {
-                    return false;
-                }
-            }
-            async function handleSqlEditBeforeClose(done) {
-                const ok = await closeSqlEditWithConfirm();
-                if (ok) done();
+                return;
             }
 
-            async function apiGet(url) {
-                const r = await fetch(url);
-                return r.json();
-            }
-            async function apiPost(url, body) {
-                const r = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                return r.json();
-            }
-            async function apiDelete(url) {
-                const r = await fetch(url, { method: 'DELETE' });
-                return r.json();
+            // 情况二：选中了具体字段 → 只补这一行
+            const f = fields.find(ff => ff && String((ff.value || ff.code || '')).trim() === fieldCode);
+            if (!f) return;
+            const key = fieldCode;
+            const labelName = String((f.showName || f.label || '')).trim();
+            const metaRemark = String((f.remark || '')).trim();
+
+            const existsIdx = (dictRows.value || []).findIndex(r =>
+                String((r && r.dictType) || '').trim() === table &&
+                String((r && r.dictKey) || '').trim() === key
+            );
+            if (existsIdx >= 0) {
+                return;
             }
 
-                    function safePrettyJson(v) {
-                        if (v == null) return '（无）';
-                        try {
-                            if (typeof v === 'string') {
-                                const t = v.trim();
-                                if (!t) return '（无）';
-                                return JSON.stringify(JSON.parse(t), null, 2);
-                            }
-                            return JSON.stringify(v, null, 2);
-                        } catch (e) {
-                            return String(v);
-                        }
+            dictRows.value.push({
+                dictType: table,
+                dictKey: key,
+                dictValue: key,
+                remark: metaRemark || labelName || ''
+            });
+        }
+
+        function addDictRow() {
+            const table = String(dictViewType.value || '').trim();
+            const fieldCode = String(dictFieldFilter.value || '').trim();
+
+            if (!table) {
+                ElementPlus.ElMessage.warning('请先在下方选择表（dictType）再新增一行');
+                return;
+            }
+
+            let key = '';
+            let labelName = '';
+            let metaRemark = '';
+
+            if (fieldCode) {
+                const metaTable = (formMetaTableOptions.value || []).find(
+                    x => x && String(x.tableName || '').trim() === table
+                );
+                if (metaTable) {
+                    const fields = Array.isArray(metaTable.fields) ? metaTable.fields : [];
+                    const f = fields.find(ff => ff && String(ff.value || '').trim() === fieldCode);
+                    if (f) {
+                        key = fieldCode;
+                        labelName = String((f && f.showName) || (f && f.label) || '').trim();
+                        metaRemark = String((f && f.remark) || '').trim();
                     }
+                }
+            }
 
-            async function loadDict() {
-                const res = await apiGet(API.dictList);
+            // 若未选字段或未在元数据中找到，则允许手动填写字段名
+            if (!key && fieldCode) {
+                key = fieldCode;
+            }
+
+            dictRows.value.push({
+                dictType: table,
+                dictKey: key,
+                dictValue: key,                      // 默认用 code 作为字段名称
+                remark: metaRemark || labelName || ''// 默认用字段中文名/remark
+            });
+        }
+        function removeDictRow(row) {
+            if (!row) return;
+            // dictRowsFiltered 是基于 dictRows 去重/过滤后的视图，这里需要在原始 dictRows 中找到对应行再删除
+            const idx = (dictRows.value || []).findIndex(r =>
+                r === row ||
+                (String((r && r.dictType) || '').trim() === String((row && row.dictType) || '').trim() &&
+                 String((r && r.dictKey) || '').trim() === String((row && row.dictKey) || '').trim() &&
+                 String((r && r.dictValue) || '').trim() === String((row && row.dictValue) || '').trim())
+            );
+            if (idx >= 0) {
+                dictRows.value.splice(idx, 1);
+            }
+        }
+
+        async function saveDict() {
+            dictSaving.value = true;
+            try {
+                // 保存前自动合并重复 key，避免后端持久化重复行
+                dictRows.value = dedupDictRows(dictRows.value || []);
+                const res = await apiPost(API.dictSave, dictRows.value);
                 if (!res.success) {
-                    ElementPlus.ElMessage.error(res.message || '加载字典失败');
+                    ElementPlus.ElMessage.error(res.message || '保存失败');
                     return;
                 }
-                dictRows.value = (res.data || []).map(d => ({
-                    dictType: d.dictType || '',
-                    dictKey: d.dictKey || '',
-                    dictValue: d.dictValue || '',
-                    sort: d.sort == null ? 0 : d.sort,
-                    status: d.status == null ? 1 : d.status,
-                    remark: d.remark || ''
-                }));
-                dictDirty.value = false;
-                dictSnapshotJson.value = JSON.stringify(dictRows.value || []);
-                await loadDictTypes();
-            }
-
-            async function loadDictWithConfirm() {
-                const ok = await confirmDiscardDictEditsIfNeeded('刷新');
-                if (!ok) return;
+                ElementPlus.ElMessage.success('字典已保存');
                 await loadDict();
+            } finally {
+                dictSaving.value = false;
             }
+        }
 
-            function deriveDictTypesFromDictRows() {
-                const set = new Set();
-                for (const r of dictRows.value || []) {
-                    const dt = r && r.dictType != null ? String(r.dictType).trim() : '';
-                    if (dt) set.add(dt);
-                }
-                return Array.from(set);
+        async function exportDictExcel() {
+            const dt = String(dictViewType.value || dictExcelType.value || '').trim();
+            if (!dt) {
+                ElementPlus.ElMessage.warning('请先在下方筛选中选择当前 dictType');
+                return;
             }
-
-            async function loadDictTypes() {
-                let fromApi = [];
-                try {
-                    const res = await apiGet(API.dictTypes);
-                    if (res && res.success) {
-                        fromApi = res.data || [];
-                    }
-                } catch (e) {
-                    // ignore，走下方兜底逻辑
-                }
-
-                const normalizeToArray = (v) => {
-                    if (Array.isArray(v)) return v;
-                    if (v == null) return [];
-                    if (typeof v === 'object') return Object.values(v);
-                    return [];
-                };
-
-                let types = normalizeToArray(fromApi)
-                    .map(t => (t == null ? '' : String(t).trim()))
-                    .filter(Boolean);
-
-                // 后端结构异常/返回为空时，从当前 dict 表格已加载的数据反推
-                if (types.length === 0) {
-                    types = deriveDictTypesFromDictRows();
-                }
-
-                // 去重 + 过滤空字符串
-                dictTypes.value = Array.from(new Set(types));
-
-                // 没选过类型则默认选第一个
-                if ((!dictExcelType.value || dictExcelType.value === '') && dictTypes.value.length > 0) {
-                    dictExcelType.value = dictTypes.value[0];
-                }
-            }
-
-            const dictRowsFiltered = computed(() => {
-                const kw = (dictKeyword.value || '').trim().toLowerCase();
-                const vt = (dictViewType.value || '').trim();
-                const rows = dictRows.value || [];
-                return rows.filter(r => {
-                    if (vt) {
-                        const dt0 = r && r.dictType != null ? String(r.dictType).trim() : '';
-                        if (dt0 !== vt) return false;
-                    }
-                    if (!kw) return true;
-                    const dt = r && r.dictType != null ? String(r.dictType).toLowerCase() : '';
-                    const k = r && r.dictKey != null ? String(r.dictKey).toLowerCase() : '';
-                    const v = r && r.dictValue != null ? String(r.dictValue).toLowerCase() : '';
-                    const rm = r && r.remark != null ? String(r.remark).toLowerCase() : '';
-                    return dt.includes(kw) || k.includes(kw) || v.includes(kw) || rm.includes(kw);
-                });
-            });
-
-            function addDictRow() {
-                dictRows.value.push({
-                    dictType: '', dictKey: '', dictValue: '', sort: 0, status: 1, remark: ''
-                });
-            }
-            function removeDictRow(i) {
-                dictRows.value.splice(i, 1);
-            }
-
-            const dictDirty = ref(false);
-            const dictSnapshotJson = ref('[]');
-
-            watch(
-                dictRows,
-                () => {
-                    try {
-                        const cur = JSON.stringify(dictRows.value || []);
-                        dictDirty.value = cur !== (dictSnapshotJson.value || '[]');
-                    } catch (e) {
-                        dictDirty.value = true;
-                    }
-                },
-                { deep: true }
-            );
-
-            async function confirmDiscardDictEditsIfNeeded(actionName) {
-                if (!dictDirty.value) return true;
-                try {
-                    await ElementPlus.ElMessageBox.confirm(
-                        '数据字典存在未保存修改，是否继续' + (actionName ? ('（' + actionName + '）') : '') + '？未保存内容将丢失。',
-                        '未保存修改',
-                        { type: 'warning' }
-                    );
-                    return true;
-                } catch (e) {
-                    return false;
-                }
-            }
-
-            async function saveDict() {
-                dictSaving.value = true;
-                try {
-                    const res = await apiPost(API.dictSave, dictRows.value);
-                    if (res.success) {
-                        ElementPlus.ElMessage.success('字典已保存');
-                        await loadDict();
-                        dictDirty.value = false;
-                    } else {
-                        ElementPlus.ElMessage.error(res.message || '保存失败');
-                    }
-                } finally {
-                    dictSaving.value = false;
-                }
-            }
-
-            async function exportDictExcel() {
-                const dt = dictExcelType.value == null ? '' : String(dictExcelType.value).trim();
-                if (!dt) {
-                    ElementPlus.ElMessage.warning('请先选择 dictType');
-                    return;
-                }
-                dictExcelExportLoading.value = true;
-                try {
-                    const url = API.dictExport + '?dictType=' + encodeURIComponent(dt);
-                    const resp = await fetch(url);
-                    if (!resp.ok) {
-                        const txt = await resp.text();
-                        throw new Error(txt || '导出失败');
-                    }
-                    const blob = await resp.blob();
-                    const downloadUrl = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = downloadUrl;
-                    a.download = 'sys_dict_' + dt + '.xlsx';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(downloadUrl);
-                    ElementPlus.ElMessage.success('导出成功');
-                } catch (e) {
-                    ElementPlus.ElMessage.error('导出失败：' + (e && e.message ? e.message : e));
-                } finally {
-                    dictExcelExportLoading.value = false;
-                }
-            }
-
-            function openDictImportDialog() {
-                const el = document.getElementById('dictImportFile');
-                if (el) {
-                    el.value = '';
-                    el.click();
-                }
-            }
-
-            function resetDictImportPreviewState() {
-                dictImportPreviewOpen.value = false;
-                dictImportPreview.value = null;
-                dictImportErrors.value = [];
-                dictImportPendingFile.value = null;
-            }
-
-            async function confirmDictImport() {
-                const dt = dictExcelType.value == null ? '' : String(dictExcelType.value).trim();
-                if (!dt) {
-                    ElementPlus.ElMessage.warning('请先选择 dictType');
-                    return;
-                }
-                if (!dictImportPendingFile.value) {
-                    ElementPlus.ElMessage.warning('未选择文件');
-                    return;
-                }
-                dictExcelImportLoading.value = true;
-                try {
-                    const fd = new FormData();
-                    fd.append('file', dictImportPendingFile.value);
-                    const url = API.dictImport + '?dictType=' + encodeURIComponent(dt);
-                    const resp = await fetch(url, { method: 'POST', body: fd });
-                    const json = await resp.json().catch(() => null);
-                    if (!resp.ok || !json || !json.success) {
-                        const msg = (json && json.message) ? json.message : '导入失败';
-                        throw new Error(msg);
-                    }
-                    ElementPlus.ElMessage.success(json.message || '导入成功');
-                    resetDictImportPreviewState();
-                    await loadDict();
-                    await loadDictTypes();
-                } catch (e) {
-                    ElementPlus.ElMessage.error('导入失败：' + (e && e.message ? e.message : e));
-                } finally {
-                    dictExcelImportLoading.value = false;
-                    const el = document.getElementById('dictImportFile');
-                    if (el) el.value = '';
-                }
-            }
-
-            async function onDictImportFileChange(evt) {
-                try {
-                    const dt = dictExcelType.value == null ? '' : String(dictExcelType.value).trim();
-                    if (!dt) {
-                        ElementPlus.ElMessage.warning('请先选择 dictType');
-                        return;
-                    }
-                    const file = evt && evt.target ? evt.target.files[0] : null;
-                    if (!file) return;
-
-                    dictExcelImportLoading.value = true;
-                    dictImportPendingFile.value = file;
-                    dictImportErrors.value = [];
-                    dictImportPreview.value = null;
-
-                    const fd = new FormData();
-                    fd.append('file', file);
-                    const url = API.dictImportPreview + '?dictType=' + encodeURIComponent(dt);
-                    const resp = await fetch(url, { method: 'POST', body: fd });
-                    const json = await resp.json().catch(() => null);
-                    if (!resp.ok || !json) {
-                        throw new Error('预览失败');
-                    }
-                    if (!json.success) {
-                        dictImportErrors.value = Array.isArray(json.data) ? json.data : [];
-                        dictImportPreviewOpen.value = true;
-                        return;
-                    }
-                    dictImportPreview.value = json.data || null;
-                    dictImportPreviewOpen.value = true;
-                } catch (e) {
-                    ElementPlus.ElMessage.error('预览失败：' + (e && e.message ? e.message : e));
-                } finally {
-                    dictExcelImportLoading.value = false;
-                    const el = document.getElementById('dictImportFile');
-                    if (el) el.value = '';
-                }
-            }
-
-            async function loadTables() {
-                tablesLoading.value = true;
-                try {
-                    const res = await apiGet(API.schemaTables);
-                    if (!res.success) {
-                        ElementPlus.ElMessage.error(res.message || '加载表失败');
-                        return;
-                    }
-                    tableOptions.value = (res.data || []).map(r => String(r)).filter(Boolean);
-                } finally {
-                    tablesLoading.value = false;
-                }
-            }
-
-            async function loadColumns() {
-                if (!sqlForm.baseTable) {
-                    ElementPlus.ElMessage.warning('请先选择表');
-                    return;
-                }
-                colsLoading.value = true;
-                try {
-                    const res = await apiGet(API.schemaColumns(sqlForm.baseTable));
-                    if (!res.success) {
-                        ElementPlus.ElMessage.error(res.message || '加载字段失败');
-                        return;
-                    }
-                    columnOptions.value = (res.data || []).map(r => String(r)).filter(Boolean);
-                } finally {
-                    colsLoading.value = false;
-                }
-            }
-
-            async function ensureTrialDictOptionsLoaded() {
-                try {
-                    const types = [...new Set(
-                        (trialParams.value || [])
-                            .map(c => c.dict)
-                            .filter(t => t && String(t).trim().length > 0)
-                    )];
-                    for (const t of types) {
-                        if (trialDictOptionsByType[t]) {
-                            continue;
-                        }
-                        const res = await apiGet(API.dictByType(t));
-                        if (res && res.success) {
-                            trialDictOptionsByType[t] = res.data || [];
-                        } else {
-                            trialDictOptionsByType[t] = [];
-                        }
-                    }
-                } catch (e) {
-                    // 试查只影响字典下拉，不要阻断执行
-                    console.warn('加载试查字典失败：', e.message);
-                }
-            }
-
-            async function executeTrial() {
-                if (!sqlForm.sqlKey) {
-                    ElementPlus.ElMessage.warning('请先填写 sql_key');
-                    return;
-                }
-                if (!sqlForm.enabled || sqlForm.enabled === 0) {
-                    ElementPlus.ElMessage.warning('当前配置已禁用，不能执行试查');
-                    return;
-                }
-
-                // 按最新条件重建 trial 参数（保留用户已输入的值）
-                rebuildTrialParams();
-
-                await ensureTrialDictOptionsLoaded();
-
-                // 生成入参：只取条件配置里允许的字段（后端会二次校验）
-                const params = {};
-                for (const row of (trialParams.value || [])) {
-                    if (!row.field) continue;
-                    if (row.op === 'between') {
-                        const fromEmpty = row.valueFrom === '' || row.valueFrom == null;
-                        const toEmpty = row.valueTo === '' || row.valueTo == null;
-                        if (fromEmpty && toEmpty) continue; // 两边都不填：跳过
-                        if (fromEmpty || toEmpty) {
-                            ElementPlus.ElMessage.warning('between 条件需要同时填写 from / to：' + (row.field || '字段'));
-                            return;
-                        }
-                        params[row.field] = { from: row.valueFrom, to: row.valueTo };
-                    } else {
-                        const v = row.value;
-                        if (v === '' || v == null) {
-                            continue;
-                        }
-                        params[row.field] = v;
-                    }
-                }
-
-                trialLoading.value = true;
-                trialResultText.value = '';
-                try {
-                    const res = await apiPost(API.querySql(sqlForm.sqlKey), params);
-                    trialResultText.value = JSON.stringify(res, null, 2);
-                } catch (e) {
-                    trialResultText.value = e && e.message ? e.message : String(e);
-                } finally {
-                    trialLoading.value = false;
-                }
-            }
-
-            function trialRowKey(r) {
-                return [r.field || '', r.op || '', r.dict || '', r.inputType || ''].join('|');
-            }
-
-            function rebuildTrialParams() {
-                const prev = trialParams.value || [];
-                const prevMap = new Map(prev.map(r => [trialRowKey(r), r]));
-                const next = (sqlForm.conditions || []).map(r => {
-                    const key = trialRowKey(r);
-                    const old = prevMap.get(key);
-                    return {
-                        field: r.field || '',
-                        op: r.op || 'eq',
-                        inputType: r.inputType || '',
-                        dict: r.dict || '',
-                        value: old ? old.value : '',
-                        valueFrom: old ? old.valueFrom : '',
-                        valueTo: old ? old.valueTo : ''
-                    };
-                });
-                trialParams.value = next;
-            }
-
-            watch(
-                () => sqlForm.conditions,
-                () => {
-                    rebuildTrialParams();
-                },
-                { deep: true, immediate: true }
-            );
-
-            /** 表切换：清空依赖列名的状态，再拉列 */
-            function onTableChanged() {
-                sqlForm.selectedFields = [];
-                sqlForm.conditions = [];
-                sqlForm.sortField = '';
-                columnOptions.value = [];
-                if (sqlForm.baseTable) {
-                    loadColumns();
-                }
-            }
-
-            function addCondRow() {
-                sqlForm.conditions.push({
-                    field: '',
-                    op: 'eq',
-                    inputType: '',
-                    dict: '',
-                    value: '',
-                    valueFrom: '',
-                    valueTo: ''
-                });
-            }
-            function removeCondRow(i) {
-                sqlForm.conditions.splice(i, 1);
-            }
-
-            /** 已选字段变化时：条件/排序若不在集合内则清空 */
-            watch(
-                () => [...sqlForm.selectedFields],
-                () => {
-                    sqlForm.conditions.forEach(row => {
-                        if (row.field && !sqlForm.selectedFields.includes(row.field)) {
-                            row.field = '';
-                        }
-
-                    });
-                    if (sqlForm.sortField && !sqlForm.selectedFields.includes(sqlForm.sortField)) {
-                        sqlForm.sortField = '';
-                    }
-                }
-            );
-
-            function buildSaveBody() {
-                const condPayload = sqlForm.conditions
-                    .filter(r => r.field)
-                    .map(r => {
-                        const o = { field: r.field, op: r.op };
-                        if (r.dict) o.dict = r.dict;
-                        if (r.inputType) o.inputType = r.inputType;
-                        return o;
-                    });
-                const defaultSort = sqlForm.sortField
-                    ? (sqlForm.sortDir === 'DESC' ? sqlForm.sortField + ' DESC' : sqlForm.sortField)
-                    : '';
-                return {
-                    sqlKey: (sqlForm.sqlKey || '').trim(),
-                    baseTable: (sqlForm.baseTable || '').trim(),
-                    selectableFields: JSON.stringify(sqlForm.selectedFields || []),
-                    conditionFields: JSON.stringify(condPayload),
-                    defaultSort: defaultSort,
-                    enabled: sqlForm.enabled,
-                    remark: sqlForm.remark || ''
-                };
-            }
-
-            const saveBodyJsonText = computed(() => {
-                try {
-                    return JSON.stringify(buildSaveBody(), null, 2);
-                } catch (e) {
-                    return String(e);
-                }
-            });
-
-            const sqlConfigRowsFiltered = computed(() => {
-                const kw = (sqlListKeyword.value || '').trim().toLowerCase();
-                const enabled = sqlEnabledFilter.value;
-                const bt = sqlBaseTableFilter.value;
-                const rows = sqlConfigRows.value || [];
-                return rows.filter(r => {
-                    if (enabled !== '' && enabled != null) {
-                        if (Number(r.enabled) !== Number(enabled)) return false;
-                    }
-                    if (bt && bt !== '') {
-                        if (String(r.baseTable || '') !== String(bt)) return false;
-                    }
-                    if (!kw) return true;
-                    return (r.sqlKey && String(r.sqlKey).toLowerCase().includes(kw)) ||
-                        (r.baseTable && String(r.baseTable).toLowerCase().includes(kw)) ||
-                        (r.remark && String(r.remark).toLowerCase().includes(kw));
-                });
-            });
-
-            watch(sqlListKeyword, () => {
-                sqlPage.value = 1;
-                saveSqlListState();
-            });
-
-            watch([sqlEnabledFilter, sqlBaseTableFilter], () => {
-                sqlPage.value = 1;
-                saveSqlListState();
-            });
-
-            watch(sqlPageSize, () => {
-                saveSqlListState();
-            });
-
-            const sqlBaseTableOptions = computed(() => {
-                const set = new Set();
-                for (const r of (sqlConfigRows.value || [])) {
-                    const t = r && r.baseTable != null ? String(r.baseTable).trim() : '';
-                    if (t) set.add(t);
-                }
-                return Array.from(set);
-            });
-
-            const sqlConfigRowsPaged = computed(() => {
-                const rows = sqlConfigRowsFiltered.value || [];
-                const start = (sqlPage.value - 1) * sqlPageSize.value;
-                return rows.slice(start, start + sqlPageSize.value);
-            });
-
-            const logicalJsonText = computed(() => {
-                try {
-                    const body = buildSaveBody();
-                    let condArr = [];
-                    let fieldsArr = [];
-                    try {
-                        condArr = JSON.parse(body.conditionFields || '[]');
-                    } catch (ignore) { condArr = []; }
-                    try {
-                        fieldsArr = JSON.parse(body.selectableFields || '[]');
-                    } catch (ignore) { fieldsArr = []; }
-                    const logical = {
-                        sqlKey: body.sqlKey,
-                        name: body.remark,
-                        baseTable: body.baseTable,
-                        selectableFields: fieldsArr,
-                        conditionFields: condArr,
-                        defaultSort: body.defaultSort || null
-                    };
-                    return JSON.stringify(logical, null, 2);
-                } catch (e) {
-                    return String(e);
-                }
-            });
-
-            function parseJsonArrayLen(s) {
-                try {
-                    const a = JSON.parse(s || '[]');
-                    return Array.isArray(a) ? a.length : 0;
-                } catch (e) {
-                    return 0;
-                }
-            }
-
-            async function loadSqlConfigList() {
-                const res = await apiGet(API.sqlList);
-                if (!res.success) {
-                    ElementPlus.ElMessage.error(res.message || '加载失败');
-                    return;
-                }
-                sqlConfigRows.value = (res.data || []).map(c => ({
-                    ...c,
-                    enabled: c.enabled == null ? 1 : c.enabled,
-                    _defaultSortField: (() => {
-                        const ds = (c.defaultSort || '').trim();
-                        if (!ds) return '';
-                        const sp = ds.split(/\s+/);
-                        return sp[0] || '';
-                    })(),
-                    _defaultSortDir: (() => {
-                        const ds = (c.defaultSort || '').trim();
-                        if (!ds) return '';
-                        const sp = ds.split(/\s+/);
-                        return (sp[1] || '').toUpperCase();
-                    })(),
-                    _fieldCount: parseJsonArrayLen(c.selectableFields),
-                    _condCount: parseJsonArrayLen(c.conditionFields)
-                }));
-            }
-
-            const workerEnabledTagType = computed(() => workerStatus.value && workerStatus.value.enabled ? 'success' : 'danger');
-            const workerStatusText = computed(() => {
-                try {
-                    return JSON.stringify(workerStatus.value || {}, null, 2);
-                } catch (e) {
-                    return String(e);
-                }
-            });
-
-            async function loadWorkerStatus() {
-                workerLoading.value = true;
-                try {
-                    const res = await apiGet(API.workerStatus);
-                    if (!res.success) {
-                        ElementPlus.ElMessage.error(res.message || '加载 Worker 状态失败');
-                        return;
-                    }
-                    workerStatus.value = res.data || {};
-                } finally {
-                    workerLoading.value = false;
-                }
-            }
-
-            async function runWorkerOnce() {
-                workerRunLoading.value = true;
-                try {
-                    const res = await apiPost(API.workerRunOnce, {});
-                    if (!res.success) {
-                        ElementPlus.ElMessage.error(res.message || '执行 Worker 失败');
-                        return;
-                    }
-                    ElementPlus.ElMessage.success('Worker 已执行一次');
-                    await loadWorkerStatus();
-                } finally {
-                    workerRunLoading.value = false;
-                }
-            }
-
-            async function loadWorkerFailedSamples() {
-                workerFailedLoading.value = true;
-                try {
-                    const res = await apiGet(API.workerFailedSamples(workerFailedTable.value, workerFailedLimit.value));
-                    if (!res.success) {
-                        ElementPlus.ElMessage.error(res.message || '加载失败样本失败');
-                        return;
-                    }
-                    workerFailedSamples.value = Array.isArray(res.data) ? res.data : [];
-                } finally {
-                    workerFailedLoading.value = false;
-                }
-            }
-
-            async function resetWorkerFailed() {
-                try {
-                    await ElementPlus.ElMessageBox.confirm(
-                        '确定将 ' + workerFailedTable.value + ' 的失败记录重置为待处理？',
-                        '确认重置',
-                        { type: 'warning' }
-                    );
-                } catch (e) {
-                    return;
-                }
-                workerResetLoading.value = true;
-                try {
-                    const res = await apiPost(API.workerResetFailed, { table: workerFailedTable.value });
-                    if (!res.success) {
-                        ElementPlus.ElMessage.error(res.message || '重置失败');
-                        return;
-                    }
-                    const affected = res.data && res.data.affected != null ? res.data.affected : 0;
-                    ElementPlus.ElMessage.success('已重置 ' + affected + ' 条');
-                    await loadWorkerStatus();
-                    await loadWorkerFailedSamples();
-                } finally {
-                    workerResetLoading.value = false;
-                }
-            }
-
-            function stopWorkerAutoRefresh() {
-                if (workerTimer.value) {
-                    clearInterval(workerTimer.value);
-                    workerTimer.value = null;
-                }
-            }
-
-            function startWorkerAutoRefresh() {
-                stopWorkerAutoRefresh();
-                if (!workerAutoRefresh.value) return;
-                const ms = Number(workerAutoRefreshMs.value) > 0 ? Number(workerAutoRefreshMs.value) : 10000;
-                workerTimer.value = setInterval(() => {
-                    if (activeTab.value === 'worker') {
-                        loadWorkerStatus();
-                    }
-                }, ms);
-            }
-
-            function openSqlDetail(row) {
-                if (!row) return;
-                sqlDetailRow.value = row;
-                sqlDetailOpen.value = true;
-            }
-
-            async function toggleSqlEnabled(row) {
-                if (!row || !row.sqlKey) return;
-                // 快速切换：不打开编辑抽屉，直接读取单条并保存 enabled
-                const res = await apiGet(API.sqlOne(row.sqlKey));
-                if (!res.success || !res.data) {
-                    ElementPlus.ElMessage.error(res.message || '加载配置失败');
-                    return;
-                }
-                const c = res.data;
-                c.enabled = (c.enabled == null ? 1 : c.enabled) === 0 ? 1 : 0;
-                const saveRes = await apiPost(API.sqlSave, c);
-                if (saveRes && saveRes.success) {
-                    ElementPlus.ElMessage.success('已' + (c.enabled === 0 ? '禁用' : '启用') + '：' + row.sqlKey);
-                    await loadSqlConfigList();
-                } else {
-                    ElementPlus.ElMessage.error((saveRes && saveRes.message) ? saveRes.message : '保存失败');
-                }
-            }
-
-            async function exportConfig() {
-                const res = await apiGet(API.configExport);
-                if (!res.success) {
-                    ElementPlus.ElMessage.error(res.message || '导出失败');
-                    return;
-                }
-                const payload = res.data || {};
-                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
+            dictExcelExportLoading.value = true;
+            try {
+                const url = API.dictExport + '?dictType=' + encodeURIComponent(dt);
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error((await resp.text()) || '导出失败');
+                const blob = await resp.blob();
+                const downloadUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                const now = new Date();
-                const pad = (n) => String(n).padStart(2, '0');
-                const stamp = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
-                a.download = 'fact-config-export_' + stamp + '.json';
+                a.href = downloadUrl;
+                a.download = 'sys_dict_' + dt + '.xlsx';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                URL.revokeObjectURL(downloadUrl);
                 ElementPlus.ElMessage.success('导出成功');
+            } catch (e) {
+                ElementPlus.ElMessage.error('导出失败：' + (e && e.message ? e.message : e));
+            } finally {
+                dictExcelExportLoading.value = false;
             }
+        }
 
-            function openImportDialog() {
-                const el = document.getElementById('importConfigFile');
-                if (el) {
-                    el.value = '';
-                    el.click();
-                }
-            }
+        function openDictImportDialog() {
+            const el = document.getElementById('dictImportFile');
+            if (!el) return;
+            el.value = '';
+            el.click();
+        }
 
-            async function onImportFileChange(evt) {
-                try {
-                    const file = evt && evt.target ? evt.target.files[0] : null;
-                    if (!file) return;
-                    const text = await file.text();
-                    const json = JSON.parse(text || '{}');
+        function resetDictImportPreviewState() {
+            dictImportPreviewOpen.value = false;
+            dictImportPreview.value = null;
+            dictImportErrors.value = [];
+            dictImportPendingFile.value = null;
+        }
 
-                    const sysDict = json.sysDict || json.sys_dict || json.sys_dicts || json.dict || [];
-                    const sysSqlConfig = json.sysSqlConfig || json.sys_sql_config || json.sysSql || [];
-
-                    const res = await apiPost(API.configImport, {
-                        sysDict: Array.isArray(sysDict) ? sysDict : [],
-                        sysSqlConfig: Array.isArray(sysSqlConfig) ? sysSqlConfig : []
-                    });
-                    if (res.success) {
-                        ElementPlus.ElMessage.success(res.message || '导入成功');
-                        await loadSqlConfigList();
-                        await loadDictTypes();
-                        await loadDict();
-                    } else {
-                        ElementPlus.ElMessage.error(res.message || '导入失败');
-                    }
-                } catch (e) {
-                    ElementPlus.ElMessage.error('导入失败：' + e.message);
-                } finally {
-                    const el = document.getElementById('importConfigFile');
-                    if (el) el.value = '';
-                }
-            }
-
-            function resetSqlFormEmpty() {
-                sqlForm.sqlKey = '';
-                sqlForm.baseTable = '';
-                sqlForm.selectedFields = [];
-                sqlForm.conditions = [];
-                sqlForm.sortField = '';
-                sqlForm.sortDir = 'DESC';
-                sqlForm.enabled = 1;
-                sqlForm.remark = '';
-                columnOptions.value = [];
-                trialParams.value = [];
-                sqlEditingOriginal.value = null;
-            }
-
-            function goNewSqlConfig() {
-                resetSqlFormEmpty();
-                sqlEditTitle.value = '新建 SQL 规则';
-                sqlEditOpen.value = true;
-                snapshotSqlForm();
-                if (tableOptions.value.length === 0) {
-                    loadTables();
-                }
-                loadDictTypes();
-                ElementPlus.ElMessage.info('已清空表单，请从选择表开始配置');
-            }
-
-            async function editSqlConfig(row) {
-                if (!row || !row.sqlKey) return;
-                sqlEditTitle.value = '编辑 SQL 规则：' + row.sqlKey;
-                sqlEditOpen.value = true;
-                if (tableOptions.value.length === 0) {
-                    loadTables();
-                }
-                const res = await apiGet(API.sqlOne(row.sqlKey));
-                if (!res.success || !res.data) {
-                    ElementPlus.ElMessage.error(res.message || '加载配置失败');
+        async function onDictImportFileChange(evt) {
+            try {
+                const dt = String(dictViewType.value || dictExcelType.value || '').trim();
+                if (!dt) {
+                    ElementPlus.ElMessage.warning('请先在下方筛选中选择当前 dictType');
                     return;
                 }
-                const c = res.data;
-                sqlForm.sqlKey = c.sqlKey || '';
-                sqlForm.baseTable = c.baseTable || '';
-                sqlForm.enabled = c.enabled == null ? 1 : c.enabled;
-                sqlForm.remark = c.remark || '';
-                try {
-                    sqlForm.selectedFields = JSON.parse(c.selectableFields || '[]');
-                } catch (e) {
-                    sqlForm.selectedFields = [];
-                }
-                let rules = [];
-                try {
-                    rules = JSON.parse(c.conditionFields || '[]');
-                } catch (e) {
-                    rules = [];
-                }
-                sqlForm.conditions = (rules || []).map(r => ({
-                    field: r.field || '',
-                    op: r.op || 'eq',
-                    inputType: r.inputType || '',
-                    dict: r.dict || '',
-                    value: '',
-                    valueFrom: '',
-                    valueTo: ''
-                }));
-                const ds = (c.defaultSort || '').trim();
-                if (ds.includes(' ')) {
-                    const sp = ds.split(/\s+/);
-                    sqlForm.sortField = sp[0];
-                    sqlForm.sortDir = (sp[1] || 'ASC').toUpperCase();
-                } else {
-                    sqlForm.sortField = ds;
-                    sqlForm.sortDir = 'ASC';
-                }
+                const file = evt && evt.target ? evt.target.files[0] : null;
+                if (!file) return;
+                dictExcelImportLoading.value = true;
+                dictImportPendingFile.value = file;
+                dictImportErrors.value = [];
+                dictImportPreview.value = null;
 
-                // 保存前输出变更摘要：记录“编辑时”的原始配置（前端展示用）
-                try {
-                    const origSelectable = JSON.parse(c.selectableFields || '[]');
-                    const origCond = JSON.parse(c.conditionFields || '[]');
-                    sqlEditingOriginal.value = {
-                        sqlKey: sqlForm.sqlKey,
-                        baseTable: sqlForm.baseTable,
-                        enabled: sqlForm.enabled,
-                        remark: sqlForm.remark,
-                        selectableFields: Array.isArray(origSelectable) ? origSelectable : [],
-                        conditionFields: Array.isArray(origCond) ? origCond : [],
-                        defaultSort: c.defaultSort || '',
-                        sortField: sqlForm.sortField || '',
-                        sortDir: sqlForm.sortDir || ''
-                    };
-                } catch (e) {
-                    sqlEditingOriginal.value = null;
+                const fd = new FormData();
+                fd.append('file', file);
+                const url = API.dictImportPreview + '?dictType=' + encodeURIComponent(dt);
+                const resp = await fetch(url, { method: 'POST', body: fd });
+                const json = await resp.json().catch(() => null);
+                if (!resp.ok || !json) throw new Error('预览失败');
+                if (!json.success) {
+                    dictImportErrors.value = Array.isArray(json.data) ? json.data : [];
+                    dictImportPreviewOpen.value = true;
+                    return;
                 }
+                dictImportPreview.value = json.data || null;
+                dictImportPreviewOpen.value = true;
+            } catch (e) {
+                ElementPlus.ElMessage.error('预览失败：' + (e && e.message ? e.message : e));
+            } finally {
+                dictExcelImportLoading.value = false;
+                const el = document.getElementById('dictImportFile');
+                if (el) el.value = '';
+            }
+        }
 
-                if (sqlForm.baseTable) {
-                    await loadColumns();
+        async function confirmDictImport() {
+            const dt = String(dictViewType.value || dictExcelType.value || '').trim();
+            if (!dt) {
+                ElementPlus.ElMessage.warning('请先在下方筛选中选择当前 dictType');
+                return;
+            }
+            if (!dictImportPendingFile.value) {
+                ElementPlus.ElMessage.warning('未选择文件');
+                return;
+            }
+            dictExcelImportLoading.value = true;
+            try {
+                const fd = new FormData();
+                fd.append('file', dictImportPendingFile.value);
+                const url = API.dictImport + '?dictType=' + encodeURIComponent(dt);
+                const resp = await fetch(url, { method: 'POST', body: fd });
+                const json = await resp.json().catch(() => null);
+                if (!resp.ok || !json || !json.success) {
+                    throw new Error((json && json.message) ? json.message : '导入失败');
                 }
+                ElementPlus.ElMessage.success(json.message || '导入成功');
+                resetDictImportPreviewState();
+                await loadDict();
                 await loadDictTypes();
-                snapshotSqlForm();
-                ElementPlus.ElMessage.success('已载入：' + row.sqlKey);
+            } catch (e) {
+                ElementPlus.ElMessage.error('导入失败：' + (e && e.message ? e.message : e));
+            } finally {
+                dictExcelImportLoading.value = false;
+                const el = document.getElementById('dictImportFile');
+                if (el) el.value = '';
             }
+        }
 
-            async function deleteSqlConfigRow(row) {
-                if (!row || !row.sqlKey) return;
-                try {
-                    await ElementPlus.ElMessageBox.confirm('确定删除 sql_key = ' + row.sqlKey + ' ？', '确认', {
-                        type: 'warning'
-                    });
-                } catch (e) {
-                    return;
+        async function loadFormMetaTableOptions() {
+            try {
+                // 先使用静态数据，确保 file:// 下也可用
+                formMetaTableOptions.value = (STATIC_FORM_META_TABLE_OPTIONS || []).slice();
+                const candidates = isFileMode
+                    ? ['../config/form_meta_config.json', './config/form_meta_config.json', 'config/form_meta_config.json']
+                    : [API.metaConfigFile, '/config/form_meta_config.json', 'config/form_meta_config.json'];
+                let json = null;
+                let lastErr = '';
+                for (const u of candidates) {
+                    try {
+                        const r = await fetch(u, { method: 'GET' });
+                        if (!r.ok) {
+                            lastErr = 'HTTP ' + r.status + ' @ ' + u;
+                            continue;
+                        }
+                        const raw = await r.json();
+                        // 兼容两种结构：
+                        // 1) {success:true, data:{forms:{...}}}
+                        // 2) {forms:{...}}（直接 JSON）
+                        const body = (raw && raw.success && raw.data) ? raw.data : raw;
+                        if (body && body.forms && typeof body.forms === 'object') {
+                            json = body;
+                            break;
+                        }
+                        lastErr = '响应缺少 forms @ ' + u;
+                    } catch (e) {
+                        lastErr = (e && e.message) ? e.message : String(e);
+                    }
                 }
-                const res = await apiDelete(API.sqlDelete(row.sqlKey));
-                if (res.success) {
-                    ElementPlus.ElMessage.success('已删除');
-                    await loadSqlConfigList();
-                } else {
-                    ElementPlus.ElMessage.error(res.message || '删除失败');
-                }
-            }
-
-            async function saveSqlConfig() {
-                if (!sqlForm.sqlKey || !sqlForm.baseTable) {
-                    ElementPlus.ElMessage.warning('请填写 sql_key 并选择表');
-                    return;
-                }
-                if (!sqlForm.selectedFields || sqlForm.selectedFields.length === 0) {
-                    ElementPlus.ElMessage.warning('请至少勾选一个可查询字段');
-                    return;
-                }
-                if (sqlForm.sortField && !sqlForm.selectedFields.includes(sqlForm.sortField)) {
-                    ElementPlus.ElMessage.warning('排序字段必须在可查询字段中');
-                    return;
-                }
-                for (const row of sqlForm.conditions) {
-                    if (row.field && !sqlForm.selectedFields.includes(row.field)) {
-                        ElementPlus.ElMessage.warning('条件字段必须在已选可查询字段中');
+                if (!json) {
+                    formMetaTableOptions.value = [];
+                    // file:// 下浏览器通常会拦截本地 fetch，静默回退到内置静态数据，避免反复报错
+                    if (isFileMode) {
+                        formMetaTableOptions.value = (STATIC_FORM_META_TABLE_OPTIONS || []).slice();
                         return;
                     }
+                    ElementPlus.ElMessage.warning('读取表单元数据失败：' + (lastErr || '未知错误'));
+                    return;
                 }
-                const body = buildSaveBody();
-                sqlSaving.value = true;
-                try {
-                    const res = await apiPost(API.sqlSave, body);
-                    if (res.success) {
-                        const condCount = (sqlForm.conditions || []).filter(r => r.field).length;
-                        const fieldCount = (sqlForm.selectedFields || []).length;
-                        let detail = '条件数=' + condCount + '，字段数=' + fieldCount;
-                        if (sqlEditingOriginal.value) {
-                            const orig = sqlEditingOriginal.value;
-                            const parts = [];
-                            if (String(orig.baseTable || '') !== String(sqlForm.baseTable || '')) parts.push('表');
-                            if (Number(orig.enabled) !== Number(sqlForm.enabled)) parts.push('启用/禁用');
-                            if (String(orig.remark || '') !== String(sqlForm.remark || '')) parts.push('名称');
-                            if (String(orig.defaultSort || '') !== String(buildSaveBody().defaultSort || '')) parts.push('排序');
-                            parts.push('条件/字段');
-                            detail = '保存成功：变更=' + parts.join('、') + '；' + detail;
-                        } else {
-                            detail = '保存成功：' + detail;
-                        }
-                        ElementPlus.ElMessage.success(detail);
-                        await loadSqlConfigList();
-                        snapshotSqlForm();
-                    } else {
-                        ElementPlus.ElMessage.error(res.message || '保存失败');
+                const forms = json && json.forms ? json.forms : {};
+                const used = new Set();
+                const arr = [];
+                for (const k of Object.keys(forms)) {
+                    const one = forms[k] || {};
+                    const table = String(one.mainTable || '').trim();
+                    const name = String(one.name || '').trim();
+                    if (!table || used.has(table)) continue;
+                    used.add(table);
+                    const fields = [];
+                    const mainFields = Array.isArray(one.mainFields) ? one.mainFields : [];
+                    const sons = Array.isArray(one.sons) ? one.sons : [];
+                    for (const f of mainFields) {
+                        const code = String((f && f.code) || '').trim();
+                        const label = String((f && f.label) || '').trim();
+                        if (!code) continue;
+                        fields.push({ value: code, label: label ? (label + '（' + code + '）') : code, showName: label || code, remark: String((f && f.remark) || '') });
                     }
-                } finally {
-                    sqlSaving.value = false;
-                }
-            }
-
-            function onTabChange(name) {
-                if (activeTab.value === 'dict' && name !== 'dict') {
-                    // 离开数据字典 Tab 前确认
-                    confirmDiscardDictEditsIfNeeded('切换Tab').then(ok => {
-                        if (!ok) {
-                            activeTab.value = 'dict';
+                    for (const s of sons) {
+                        const sf = Array.isArray(s && s.fields) ? s.fields : [];
+                        for (const f of sf) {
+                            const code = String((f && f.code) || '').trim();
+                            const label = String((f && f.label) || '').trim();
+                            if (!code) continue;
+                            fields.push({ value: code, label: label ? (label + '（' + code + '）') : code, showName: label || code, remark: String((f && f.remark) || '') });
                         }
+                    }
+                    const seenField = new Set();
+                    const dedupFields = fields.filter(x => {
+                        if (!x || !x.value || seenField.has(x.value)) return false;
+                        seenField.add(x.value);
+                        return true;
+                    });
+                    arr.push({
+                        value: table,
+                        label: name ? (name + '（' + table + '）') : table,
+                        tableName: table,
+                        showName: name || table,
+                        remark: String((one && one.remark) || ''),
+                        fields: dedupFields
                     });
                 }
-                if (name === 'sql-list') {
-                    loadSqlConfigList();
-                }
-                if (name === 'worker') {
-                    loadWorkerStatus();
-                    loadWorkerFailedSamples();
-                }
+                formMetaTableOptions.value = arr;
+            } catch (e) {
+                formMetaTableOptions.value = [];
+                ElementPlus.ElMessage.warning('读取表单元数据失败：' + ((e && e.message) ? e.message : e));
             }
-
-            onMounted(async () => {
-                window.addEventListener('beforeunload', (e) => {
-                    if (dictDirty.value) {
-                        e.preventDefault();
-                        e.returnValue = '';
-                    }
-                });
-                loadSqlListState();
-                await loadDict();
-                await loadTables();
-                await loadSqlConfigList();
-                await loadDictTypes();
-                startWorkerAutoRefresh();
-            });
-
-            watch(workerAutoRefresh, () => {
-                startWorkerAutoRefresh();
-            });
-            watch(workerAutoRefreshMs, () => {
-                startWorkerAutoRefresh();
-            });
-
-            return {
-                activeTab,
-                onTabChange,
-                dictRows, dictRowsFiltered, dictKeyword, dictViewType, dictSaving, loadDict, loadDictWithConfirm, addDictRow, removeDictRow, saveDict,
-                dictDirty,
-                dictTypeUsedBySqlKeys,
-                dictTypes,
-                dictExcelType,
-                exportDictExcel, openDictImportDialog, onDictImportFileChange,
-                dictImportPreviewOpen, dictImportPreview, dictImportErrors,
-                confirmDictImport, resetDictImportPreviewState,
-                dictExcelImportLoading: dictExcelImportLoading,
-                dictExcelExportLoading: dictExcelExportLoading,
-                sqlConfigRows, sqlListKeyword, sqlConfigRowsFiltered,
-                sqlEnabledFilter, sqlBaseTableFilter, sqlBaseTableOptions,
-                sqlDetailOpen, sqlDetailRow,
-                sqlEditOpen, sqlEditTitle,
-                sqlEditCollapseActive,
-                sqlDirty, closeSqlEditWithConfirm, handleSqlEditBeforeClose,
-                sqlConfigRowsPaged, sqlPage, sqlPageSize,
-                loadSqlConfigList, goNewSqlConfig, editSqlConfig, deleteSqlConfigRow,
-                toggleSqlEnabled, openSqlDetail, safePrettyJson,
-                exportConfig, openImportDialog, onImportFileChange,
-                tableOptions, tablesLoading, columnOptions, colsLoading,
-                sqlForm, loadColumns, onTableChanged, addCondRow, removeCondRow,
-                saveSqlConfig, sqlSaving,
-                resetSqlFormEmpty,
-                logicalJsonText, saveBodyJsonText,
-                trialLoading, trialResultText, trialDictOptionsByType, executeTrial,
-                trialParams,
-                workerLoading, workerRunLoading, workerStatus,
-                workerEnabledTagType, workerStatusText,
-                workerAutoRefresh, workerAutoRefreshMs,
-                loadWorkerStatus, runWorkerOnce,
-                workerFailedTable, workerFailedLimit, workerFailedLoading, workerResetLoading, workerFailedSamples,
-                loadWorkerFailedSamples, resetWorkerFailed
-            };
         }
-    }).use(ElementPlus).mount('#app');
+
+        function onTabChange(name) {
+            if (activeTab.value === 'dict' && name !== 'dict') {
+                confirmDiscardDictEditsIfNeeded('切换Tab').then(ok => {
+                    if (!ok) activeTab.value = 'dict';
+                });
+            }
+        }
+
+        onMounted(async () => {
+            window.addEventListener('beforeunload', (e) => {
+                if (dictDirty.value) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
+            await loadFormMetaTableOptions();
+            if (!isFileMode) {
+                await loadDict();
+                await loadDictTypes();
+                // 初次加载后，根据默认选中的表/字段补齐一行（如果需要）
+                ensureRowForCurrentSelection();
+            }
+        });
+
+        // 当用户切换“表”或“字段”时，如果当前组合在字典中不存在，则自动补一行
+        watch([dictViewType, dictFieldFilter], () => {
+            ensureRowForCurrentSelection();
+        });
+
+        return {
+            activeTab,
+            onTabChange,
+            dictRows,
+            dictRowsFiltered,
+            dictFieldFilter,
+            dictFieldOptions,
+            dictKeyword,
+            dictViewType,
+            dictSaving,
+            loadDict,
+            loadDictWithConfirm,
+            addDictRow,
+            removeDictRow,
+            saveDict,
+            dictDirty,
+            dictTypeUsedBySqlKeys,
+            dictTypes,
+            dictExcelType,
+            exportDictExcel,
+            openDictImportDialog,
+            onDictImportFileChange,
+            dictImportPreviewOpen,
+            dictImportPreview,
+            dictImportErrors,
+            confirmDictImport,
+            resetDictImportPreviewState,
+            dictExcelImportLoading,
+            dictExcelExportLoading,
+            getTableDisplayName,
+            formMetaTableOptions
+        };
+    }
+}).use(ElementPlus).mount('#app');
 </script>
 </body>
 </html>

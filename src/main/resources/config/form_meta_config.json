@@ -1,235 +1,618 @@
 {
-  "version": 1,
-  "generatedFrom": [
-    "OA表单数据字典/模拟付息.md",
-    "OA表单数据字典/项目分期还款计划表.md"
-  ],
-  "forms": {
-    "formmain_0026": {
-      "name": "模拟付息",
-      "mainTable": "formmain_0026",
-      "mainFields": [
-        { "code": "field0009", "type": "VARCHAR", "length": 100, "label": "关联贷款项目", "input": "文本", "dbType": "NVARCHAR(100)" },
-        { "code": "field0022", "type": "VARCHAR", "length": 255, "label": "贷款项目编码", "input": "文本", "dbType": "NVARCHAR(255)" },
-        { "code": "field0010", "type": "VARCHAR", "length": 20, "label": "表单视图引用", "input": "表单自定义控件", "dbType": "NVARCHAR(20)" },
-        { "code": "field0011", "type": "DECIMAL", "length": 20, "label": "下柜资金合计", "input": "文本", "dbType": "NUMERIC(20,6)" },
-        { "code": "field0012", "type": "DECIMAL", "length": 20, "label": "贷款余额合计", "input": "文本", "dbType": "NUMERIC(20,6)" },
-        { "code": "field0013", "type": "DECIMAL", "length": 20, "label": "计划还本合计", "input": "文本", "dbType": "NUMERIC(20,6)" },
-        { "code": "field0014", "type": "DECIMAL", "length": 20, "label": "模拟付息合计", "input": "文本", "dbType": "NUMERIC(20,10)" },
-        { "code": "field0023", "type": "VARCHAR", "length": 255, "label": "日利息计算控件1", "input": "表单自定义控件", "dbType": "NVARCHAR(255)" },
-        { "code": "field0024", "type": "VARCHAR", "length": 100, "label": "是否保存数据", "input": "文本", "dbType": "NVARCHAR(100)" },
-        { "code": "field0026", "type": "TIMESTAMP", "length": 255, "label": "贷款开始日期", "input": "日期", "dbType": "DATETIME" },
-        { "code": "field0027", "type": "TIMESTAMP", "length": 255, "label": "贷款结束日期", "input": "日期", "dbType": "DATETIME" }
-      ],
-      "sons": [
-        {
-          "name": "明细表1",
-          "table": "formson_0044",
-          "fields": [
-            { "code": "field0016", "type": "TIMESTAMP", "length": 255, "label": "时间", "input": "日期", "dbType": "DATETIME" },
-            { "code": "field0017", "type": "DECIMAL", "length": 20, "label": "下柜资金", "input": "文本", "dbType": "NUMERIC(20,6)" },
-            { "code": "field0018", "type": "DECIMAL", "length": 20, "label": "贷款余额", "input": "文本", "dbType": "NUMERIC(20,6)" },
-            { "code": "field0019", "type": "DECIMAL", "length": 20, "label": "计划还本", "input": "文本", "dbType": "NUMERIC(20,6)" },
-            { "code": "field0020", "type": "DECIMAL", "length": 20, "label": "模拟付息", "input": "文本", "dbType": "NUMERIC(20,10)" },
-            { "code": "field0021", "type": "VARCHAR", "length": 100, "label": "备注-还款计划", "input": "文本", "dbType": "NVARCHAR(100)" }
-          ]
-        }
-      ],
-      "semantics": {
-        "billNo": null,
-        "rate": null,
-        "rateEffectiveTime": null,
-        "repayModeEnumField": null,
-        "interestModeEnumField": null
+  "version" : 1,
+  "generatedFrom" : [ "OA表单数据字典/模拟付息.md", "OA表单数据字典/项目分期还款计划表.md", "OA表单数据字典/按日还款计划表.md" ],
+  "forms" : {
+    "formmain_0026" : {
+      "name" : "模拟付息",
+      "mainTable" : "formmain_0026",
+      "mainFields" : [ {
+        "primaryKey" : "related_loan_project",
+        "code" : "field0009",
+        "label" : "关联贷款项目",
+        "remark" : "贷款项目"
+      }, {
+        "primaryKey" : "loan_project_code",
+        "code" : "field0022",
+        "label" : "贷款项目编码",
+        "remark" : "贷款项目编码"
+      }, {
+        "primaryKey" : "form_view_ref",
+        "code" : "field0010",
+        "label" : "表单视图引用",
+        "remark" : "表单视图引用"
+      }, {
+        "primaryKey" : "outflow_fund_total",
+        "code" : "field0011",
+        "label" : "下柜资金合计",
+        "remark" : ""
+      }, {
+        "primaryKey" : "loan_balance_total",
+        "code" : "field0012",
+        "label" : "贷款余额合计",
+        "remark" : "贷款余额合计"
+      }, {
+        "primaryKey" : "planned_principal_total",
+        "code" : "field0013",
+        "label" : "计划还本合计",
+        "remark" : ""
+      }, {
+        "primaryKey" : "simulated_interest_total",
+        "code" : "field0014",
+        "label" : "模拟付息合计",
+        "remark" : "模拟付息"
+      }, {
+        "primaryKey" : "daily_interest_calc_control_1",
+        "code" : "field0023",
+        "label" : "日利息计算控件1",
+        "remark" : ""
+      }, {
+        "primaryKey" : "save_data_flag",
+        "code" : "field0024",
+        "label" : "是否保存数据",
+        "remark" : ""
+      }, {
+        "primaryKey" : "loan_start_date",
+        "code" : "field0026",
+        "label" : "贷款开始日期",
+        "remark" : ""
+      }, {
+        "primaryKey" : "loan_end_date",
+        "code" : "field0027",
+        "label" : "贷款结束日期",
+        "remark" : ""
+      } ],
+      "sons" : [ {
+        "name" : "明细表1",
+        "table" : "formson_0044",
+        "fields" : [ {
+          "primaryKey" : "time",
+          "code" : "field0016",
+          "label" : "时间",
+          "remark" : ""
+        }, {
+          "primaryKey" : "outflow_fund",
+          "code" : "field0017",
+          "label" : "下柜资金",
+          "remark" : ""
+        }, {
+          "primaryKey" : "loan_balance",
+          "code" : "field0018",
+          "label" : "贷款余额",
+          "remark" : ""
+        }, {
+          "primaryKey" : "planned_principal",
+          "code" : "field0019",
+          "label" : "计划还本",
+          "remark" : ""
+        }, {
+          "primaryKey" : "simulated_interest",
+          "code" : "field0020",
+          "label" : "模拟付息",
+          "remark" : "模拟付息"
+        }, {
+          "primaryKey" : "remark_repayment_plan",
+          "code" : "field0021",
+          "label" : "备注-还款计划",
+          "remark" : ""
+        } ]
+      } ],
+      "semantics" : {
+        "billNo" : null,
+        "rate" : null,
+        "rateEffectiveTime" : null,
+        "repayModeEnumField" : null,
+        "interestModeEnumField" : null
       },
-      "enumIds": {}
+      "enumIds" : { }
     },
-    "formmain_0039": {
-      "name": "还款计划表存储表",
-      "mainTable": "formmain_0039",
-      "mainFields": [
-        { "code": "field0001", "type": "VARCHAR", "length": 255, "label": "单据编号", "input": "文本", "dbType": "NVARCHAR(255)" },
-        { "code": "field0002", "type": "VARCHAR", "length": 20, "label": "经办人", "input": "选人", "dbType": "NVARCHAR(20)" },
-        { "code": "field0003", "type": "VARCHAR", "length": 20, "label": "经办部门", "input": "选部门", "dbType": "NVARCHAR(20)" },
-        { "code": "field0004", "type": "TIMESTAMP", "length": 255, "label": "经办日期", "input": "日期", "dbType": "DATETIME" },
-        { "code": "field0005", "type": "VARCHAR", "length": 100, "label": "贷款项目", "input": "文本", "dbType": "NVARCHAR(100)" },
-        { "code": "field0006", "type": "VARCHAR", "length": 100, "label": "贷款单位", "input": "文本", "dbType": "NVARCHAR(100)" },
-        { "code": "field0007", "type": "VARCHAR", "length": 100, "label": "贷款银行", "input": "文本", "dbType": "NVARCHAR(100)" },
-        { "code": "field0008", "type": "DECIMAL", "length": 20, "label": "合同金额", "input": "文本", "dbType": "NUMERIC(20,2)" },
-        { "code": "field0009", "type": "TIMESTAMP", "length": 255, "label": "贷款开始日期", "input": "日期", "dbType": "DATETIME" },
-        { "code": "field0010", "type": "TIMESTAMP", "length": 255, "label": "贷款结束日期", "input": "日期", "dbType": "DATETIME" },
-        { "code": "field0011", "type": "DECIMAL", "length": 20, "label": "贷款时间", "input": "文本", "dbType": "NUMERIC(20,0)" },
-        { "code": "field0012", "type": "DECIMAL", "length": 20, "label": "最新利率", "input": "文本", "dbType": "NUMERIC(20,6)" },
-        { "code": "field0013", "type": "DECIMAL", "length": 20, "label": "还本模式", "input": "下拉", "dbType": "NUMERIC(19,0)" },
-        { "code": "field0014", "type": "DECIMAL", "length": 20, "label": "付息模式", "input": "下拉", "dbType": "NUMERIC(19,0)" },
-        { "code": "field0015", "type": "DECIMAL", "length": 20, "label": "担保模式", "input": "下拉", "dbType": "NUMERIC(19,0)" },
-        { "code": "field0016", "type": "DECIMAL", "length": 20, "label": "贷款模式", "input": "下拉", "dbType": "NUMERIC(19,0)" },
-        { "code": "field0017", "type": "VARCHAR", "length": 255, "label": "资金用途", "input": "文本", "dbType": "NVARCHAR(255)" },
-        { "code": "field0034", "type": "DECIMAL", "length": 20, "label": "下柜资金合计", "input": "文本", "dbType": "NUMERIC(20,6)" },
-        { "code": "field0035", "type": "DECIMAL", "length": 20, "label": "贷款余额合计", "input": "文本", "dbType": "NUMERIC(20,6)" },
-        { "code": "field0036", "type": "DECIMAL", "length": 20, "label": "还本合计", "input": "文本", "dbType": "NUMERIC(20,2)" },
-        { "code": "field0037", "type": "DECIMAL", "length": 20, "label": "付息合计", "input": "文本", "dbType": "NUMERIC(20,10)" },
-        { "code": "field0038", "type": "DECIMAL", "length": 20, "label": "计划还本合计", "input": "文本", "dbType": "NUMERIC(20,2)" },
-        { "code": "field0039", "type": "DECIMAL", "length": 20, "label": "模拟付息合计", "input": "文本", "dbType": "NUMERIC(20,10)" },
-        { "code": "field0040", "type": "DECIMAL", "length": 20, "label": "默认还款日", "input": "文本", "dbType": "NUMERIC(20,0)" },
-        { "code": "field0042", "type": "TIMESTAMP", "length": 255, "label": "利率生效时间", "input": "日期", "dbType": "DATETIME" },
-        { "code": "field0043", "type": "VARCHAR", "length": 100, "label": "是否添加明细表", "input": "文本", "dbType": "NVARCHAR(100)" },
-        { "code": "field0044", "type": "DECIMAL", "length": 20, "label": "默认开始还款月", "input": "文本", "dbType": "NUMERIC(20,0)" }
-      ],
-      "sons": [
-        {
-          "name": "抵押物",
-          "table": "formson_0040",
-          "fields": [
-            { "code": "field0019", "type": "VARCHAR", "length": 100, "label": "抵押物", "input": "文本", "dbType": "NVARCHAR(100)" }
-          ]
-        },
-        {
-          "name": "担保公司",
-          "table": "formson_0041",
-          "fields": [
-            { "code": "field0021", "type": "VARCHAR", "length": 100, "label": "担保公司", "input": "文本", "dbType": "NVARCHAR(100)" }
-          ]
-        },
-        {
-          "name": "附件清单",
-          "table": "formson_0042",
-          "fields": [
-            { "code": "field0022", "type": "VARCHAR", "length": 100, "label": "文件名称", "input": "文本", "dbType": "NVARCHAR(100)" },
-            { "code": "field0023", "type": "VARCHAR", "length": 20, "label": "上传附件", "input": "上传附件", "dbType": "NVARCHAR(20)" },
-            { "code": "field0024", "type": "VARCHAR", "length": 255, "label": "备注", "input": "文本域", "dbType": "NVARCHAR(255)" }
-          ]
-        },
-        {
-          "name": "还款计划表",
-          "table": "formson_0043",
-          "fields": [
-            { "code": "field0025", "type": "DECIMAL", "length": 20, "label": "序号1", "input": "序号", "dbType": "NUMERIC(20,0)" },
-            { "code": "field0026", "type": "TIMESTAMP", "length": 255, "label": "时间", "input": "日期", "dbType": "DATETIME" },
-            { "code": "field0027", "type": "DECIMAL", "length": 20, "label": "下柜资金", "input": "文本", "dbType": "NUMERIC(20,6)" },
-            { "code": "field0028", "type": "DECIMAL", "length": 20, "label": "贷款余额", "input": "文本", "dbType": "NUMERIC(20,6)" },
-            { "code": "field0029", "type": "DECIMAL", "length": 20, "label": "还本", "input": "文本", "dbType": "NUMERIC(20,2)" },
-            { "code": "field0030", "type": "DECIMAL", "length": 20, "label": "付息", "input": "文本", "dbType": "NUMERIC(20,10)" },
-            { "code": "field0031", "type": "VARCHAR", "length": 255, "label": "备注-还款计划", "input": "文本", "dbType": "NVARCHAR(255)" },
-            { "code": "field0032", "type": "DECIMAL", "length": 20, "label": "计划还本", "input": "文本", "dbType": "NUMERIC(20,2)" },
-            { "code": "field0033", "type": "DECIMAL", "length": 20, "label": "模拟付息", "input": "文本", "dbType": "NUMERIC(20,10)" },
-            { "code": "field0047", "type": "VARCHAR", "length": 100, "label": "是否默认还款日", "input": "文本", "dbType": "NVARCHAR(100)" }
-          ]
-        }
-      ],
-      "semantics": {
-        "billNo": "field0001",
-        "latestRate": "field0012",
-        "rateEffectiveTime": "field0042",
-        "repayModeEnumField": "field0013",
-        "interestModeEnumField": "field0014",
-        "sumOutCabinet": "field0034"
+    "formmain_0039" : {
+      "name" : "还款计划表存储表",
+      "mainTable" : "formmain_0039",
+      "mainFields" : [ {
+        "primaryKey" : "bill_no",
+        "code" : "field0001",
+        "label" : "单据编号",
+        "remark" : "单据编号"
+      }, {
+        "primaryKey" : "handler",
+        "code" : "field0002",
+        "label" : "经办人",
+        "remark" : "经办人"
+      }, {
+        "primaryKey" : "handler_dept",
+        "code" : "field0003",
+        "label" : "经办部门",
+        "remark" : "经办部门"
+      }, {
+        "primaryKey" : "handled_date",
+        "code" : "field0004",
+        "label" : "经办日期",
+        "remark" : "经办日期"
+      }, {
+        "primaryKey" : "loan_project",
+        "code" : "field0005",
+        "label" : "贷款项目",
+        "remark" : "贷款项目"
+      }, {
+        "primaryKey" : "loan_unit",
+        "code" : "field0006",
+        "label" : "贷款单位",
+        "remark" : "贷款单位"
+      }, {
+        "primaryKey" : "loan_bank",
+        "code" : "field0007",
+        "label" : "贷款银行",
+        "remark" : "贷款银行"
+      }, {
+        "primaryKey" : "contract_amount",
+        "code" : "field0008",
+        "label" : "合同金额",
+        "remark" : "合同金额"
+      }, {
+        "primaryKey" : "loan_start_date",
+        "code" : "field0009",
+        "label" : "贷款开始日期",
+        "remark" : "贷款开始日期"
+      }, {
+        "primaryKey" : "loan_end_date",
+        "code" : "field0010",
+        "label" : "贷款结束日期",
+        "remark" : "贷款结束日期"
+      }, {
+        "primaryKey" : "loan_term",
+        "code" : "field0011",
+        "label" : "贷款时间",
+        "remark" : "贷款时间"
+      }, {
+        "primaryKey" : "latest_rate",
+        "code" : "field0012",
+        "label" : "最新利率",
+        "remark" : "最新利率"
+      }, {
+        "primaryKey" : "principal_repayment_mode",
+        "code" : "field0013",
+        "label" : "还本模式",
+        "remark" : "还本模式"
+      }, {
+        "primaryKey" : "interest_payment_mode",
+        "code" : "field0014",
+        "label" : "付息模式",
+        "remark" : "付息模式"
+      }, {
+        "primaryKey" : "guarantee_mode",
+        "code" : "field0015",
+        "label" : "担保模式",
+        "remark" : "担保模式"
+      }, {
+        "primaryKey" : "loan_mode",
+        "code" : "field0016",
+        "label" : "贷款模式",
+        "remark" : "贷款模式"
+      }, {
+        "primaryKey" : "fund_usage",
+        "code" : "field0017",
+        "label" : "资金用途",
+        "remark" : "资金用途"
+      }, {
+        "primaryKey" : "outflow_fund_total",
+        "code" : "field0034",
+        "label" : "下柜资金合计",
+        "remark" : "下柜资金合计"
+      }, {
+        "primaryKey" : "loan_balance_total",
+        "code" : "field0035",
+        "label" : "贷款余额合计",
+        "remark" : "贷款余额合计"
+      }, {
+        "primaryKey" : "principal_total",
+        "code" : "field0036",
+        "label" : "还本合计",
+        "remark" : "还本合计"
+      }, {
+        "primaryKey" : "interest_total",
+        "code" : "field0037",
+        "label" : "付息合计",
+        "remark" : "付息合计"
+      }, {
+        "primaryKey" : "planned_principal_total",
+        "code" : "field0038",
+        "label" : "计划还本合计",
+        "remark" : "计划还本合计"
+      }, {
+        "primaryKey" : "simulated_interest_total",
+        "code" : "field0039",
+        "label" : "模拟付息合计",
+        "remark" : "模拟付息合计"
+      }, {
+        "primaryKey" : "default_repayment_day",
+        "code" : "field0040",
+        "label" : "默认还款日",
+        "remark" : "默认还款日"
+      }, {
+        "primaryKey" : "rate_effective_time",
+        "code" : "field0042",
+        "label" : "利率生效时间",
+        "remark" : "利率生效时间"
+      }, {
+        "primaryKey" : "add_detail_flag",
+        "code" : "field0043",
+        "label" : "是否添加明细表",
+        "remark" : "是否添加明细表"
+      }, {
+        "primaryKey" : "default_repayment_start_month",
+        "code" : "field0044",
+        "label" : "默认开始还款月",
+        "remark" : "默认开始还款月"
+      } ],
+      "sons" : [ {
+        "name" : "抵押物",
+        "table" : "formson_0040",
+        "fields" : [ {
+          "primaryKey" : "collateral",
+          "code" : "field0019",
+          "label" : "抵押物",
+          "remark" : "抵押物"
+        } ]
+      }, {
+        "name" : "担保公司",
+        "table" : "formson_0041",
+        "fields" : [ {
+          "primaryKey" : "guarantee_company",
+          "code" : "field0021",
+          "label" : "担保公司",
+          "remark" : "担保公司"
+        } ]
+      }, {
+        "name" : "附件清单",
+        "table" : "formson_0042",
+        "fields" : [ {
+          "primaryKey" : "file_name",
+          "code" : "field0022",
+          "label" : "文件名称",
+          "remark" : "文件名称"
+        }, {
+          "primaryKey" : "uploaded_attachment",
+          "code" : "field0023",
+          "label" : "上传附件",
+          "remark" : "上传附件"
+        }, {
+          "primaryKey" : "remark",
+          "code" : "field0024",
+          "label" : "备注",
+          "remark" : "备注"
+        } ]
+      }, {
+        "name" : "还款计划表",
+        "table" : "formson_0043",
+        "fields" : [ {
+          "primaryKey" : "seq_no_1",
+          "code" : "field0025",
+          "label" : "序号1",
+          "remark" : "序号1"
+        }, {
+          "primaryKey" : "time",
+          "code" : "field0026",
+          "label" : "时间",
+          "remark" : "时间"
+        }, {
+          "primaryKey" : "outflow_fund",
+          "code" : "field0027",
+          "label" : "下柜资金",
+          "remark" : "下柜资金"
+        }, {
+          "primaryKey" : "loan_balance",
+          "code" : "field0028",
+          "label" : "贷款余额",
+          "remark" : "贷款余额"
+        }, {
+          "primaryKey" : "principal",
+          "code" : "field0029",
+          "label" : "还本",
+          "remark" : "还本"
+        }, {
+          "primaryKey" : "interest",
+          "code" : "field0030",
+          "label" : "付息",
+          "remark" : "付息"
+        }, {
+          "primaryKey" : "remark_repayment_plan",
+          "code" : "field0031",
+          "label" : "备注-还款计划",
+          "remark" : "备注-还款计划"
+        }, {
+          "primaryKey" : "planned_principal",
+          "code" : "field0032",
+          "label" : "计划还本",
+          "remark" : "计划还本"
+        }, {
+          "primaryKey" : "simulated_interest",
+          "code" : "field0033",
+          "label" : "模拟付息",
+          "remark" : "模拟付息"
+        }, {
+          "primaryKey" : "default_repayment_day_flag",
+          "code" : "field0047",
+          "label" : "是否默认还款日",
+          "remark" : "是否默认还款日"
+        } ]
+      } ],
+      "semantics" : {
+        "billNo" : "field0001",
+        "latestRate" : "field0012",
+        "rateEffectiveTime" : "field0042",
+        "repayModeEnumField" : "field0013",
+        "interestModeEnumField" : "field0014",
+        "sumOutCabinet" : "field0034"
       },
-      "enumIds": {
-        "repay_mode_installment_principal": null,
-        "interest_mode_installment_interest": null
+      "enumIds" : {
+        "repay_mode_installment_principal" : null,
+        "interest_mode_installment_interest" : null
       },
-      "events": {
-        "installment_principal_change_monitor": {
-          "type": "rowChange",
-          "triggerName": "trg_formson_0043_monitor",
-          "source": {
-            "table": "formson_0043",
-            "mainJoin": {
-              "mainTable": "formmain_0039",
-              "childMainIdField": "formmain_id",
-              "mainIdField": "ID"
+      "events" : {
+        "installment_principal_change_monitor" : {
+          "type" : "rowChange",
+          "triggerName" : "trg_formson_0043_monitor",
+          "source" : {
+            "table" : "formson_0043",
+            "mainJoin" : {
+              "mainTable" : "formmain_0039",
+              "childMainIdField" : "formmain_id",
+              "mainIdField" : "ID"
             }
           },
-          "businessFilters": [
-            {
-              "mainEnumField": "field0013",
-              "enumShowValue": "分期还本",
-              "matchType": "eq"
-            },
-            {
-              "mainEnumField": "field0014",
-              "enumShowValue": "分期付息",
-              "matchType": "neq_or_null"
-            }
-          ],
-          "monitoredFields": [
-            { "childField": "field0027", "logFieldCode": "field0027", "onlyIfNewNotNull": true },
-            { "childField": "field0029", "logFieldCode": "field0029", "onlyIfNewNotNull": true }
-          ],
-          "output": {
-            "table": "Middle_Installment_Records",
-            "monitoredFieldFormat": "fieldCode={value}",
-            "targetTableId": "child.id",
-            "skipWhenNewValueIsNull": true
-          }
-        }
-      }
-    }
-    ,
-    "formmain_0032": {
-      "name": "利率变更主表（适配 interest_change_notify）",
-      "mainTable": "formmain_0032",
-      "mainFields": [
-        { "code": "field0001", "type": "VARCHAR", "length": 255, "label": "单据编号", "input": "文本", "dbType": "NVARCHAR(255)" },
-        { "code": "field0042", "type": "DECIMAL", "length": 20, "label": "利率值", "input": "文本", "dbType": "NUMERIC(20,6)" },
-        { "code": "field0041", "type": "TIMESTAMP", "length": 255, "label": "利率生效时间", "input": "日期", "dbType": "DATETIME" }
-      ],
-      "events": {
-        "interest_change_insert": {
-          "type": "afterInsert",
-          "triggerName": "trg_formmain_0032_insert",
-          "source": { "table": "formmain_0032" },
-          "output": {
-            "table": "interest_change_notify",
-            "mapping": {
-              "source_id": "child.id",
-              "bill_no": "field0001",
-              "current_rate": "field0042",
-              "rate_effective_time": "field0041",
-              "process_status": 0
-            },
-            "whereNotNull": [
-              "field0042",
-              "field0041"
-            ]
+          "businessFilters" : [ {
+            "mainEnumField" : "field0013",
+            "enumShowValue" : "分期还本",
+            "matchType" : "eq"
+          }, {
+            "mainEnumField" : "field0014",
+            "enumShowValue" : "分期付息",
+            "matchType" : "neq_or_null"
+          } ],
+          "monitoredFields" : [ {
+            "childField" : "field0027",
+            "logFieldCode" : "field0027",
+            "onlyIfNewNotNull" : true
+          }, {
+            "childField" : "field0029",
+            "logFieldCode" : "field0029",
+            "onlyIfNewNotNull" : true
+          } ],
+          "output" : {
+            "table" : "Middle_Installment_Records",
+            "monitoredFieldFormat" : "fieldCode={value}",
+            "targetTableId" : "child.id",
+            "skipWhenNewValueIsNull" : true
           }
         }
       },
-      "enumIds": {}
+      "remark" : ""
     },
-    "formmain_0030": {
-      "name": "按日还款计划表（适配 Middle_Insert_Records）",
-      "mainTable": "formmain_0030",
-      "sons": [
-        {
-          "name": "按日还款计划子表",
-          "table": "formson_0030",
-          "fields": [
-            { "code": "field0027", "type": "DECIMAL", "length": 20, "label": "下柜资金", "input": "文本", "dbType": "NUMERIC(20,6)" },
-            { "code": "field0029", "type": "DECIMAL", "length": 20, "label": "还本", "input": "文本", "dbType": "NUMERIC(20,2)" }
-          ]
-        }
-      ],
-      "events": {
-        "daily_installment_principal_change_monitor": {
-          "type": "rowChange",
-          "triggerName": "trg_formson_0030_monitor",
-          "source": { "table": "formson_0030" },
-          "monitoredFields": [
-            { "childField": "field0027", "logFieldCode": "field0027", "onlyIfNewNotNull": true },
-            { "childField": "field0029", "logFieldCode": "field0029", "onlyIfNewNotNull": true }
-          ],
-          "output": {
-            "table": "Middle_Insert_Records",
-            "monitoredFieldFormat": "{fieldCode}={value}",
-            "targetTableId": "child.id",
-            "skipWhenNewValueIsNull": true
+    "formmain_0029" : {
+      "name" : "还款计划表（每日）",
+      "mainTable" : "formmain_0029",
+      "mainFields" : [ {
+        "primaryKey" : "bill_no",
+        "code" : "field0001",
+        "label" : "单据编号",
+        "remark" : "单据编号"
+      }, {
+        "primaryKey" : "handler",
+        "code" : "field0002",
+        "label" : "经办人",
+        "remark" : "经办人"
+      }, {
+        "primaryKey" : "handler_dept",
+        "code" : "field0003",
+        "label" : "经办部门",
+        "remark" : "经办部门"
+      }, {
+        "primaryKey" : "handled_date",
+        "code" : "field0004",
+        "label" : "经办日期",
+        "remark" : "经办日期"
+      }, {
+        "primaryKey" : "loan_project",
+        "code" : "field0044",
+        "label" : "贷款项目",
+        "remark" : "贷款项目"
+      }, {
+        "primaryKey" : "loan_unit",
+        "code" : "field0045",
+        "label" : "贷款单位",
+        "remark" : "贷款单位"
+      }, {
+        "primaryKey" : "loan_bank",
+        "code" : "field0046",
+        "label" : "贷款银行",
+        "remark" : "贷款银行"
+      }, {
+        "primaryKey" : "contract_amount",
+        "code" : "field0008",
+        "label" : "合同金额",
+        "remark" : "合同金额"
+      }, {
+        "primaryKey" : "start_date",
+        "code" : "field0059",
+        "label" : "开始日期",
+        "remark" : "开始日期"
+      }, {
+        "primaryKey" : "end_date",
+        "code" : "field0060",
+        "label" : "结束日期",
+        "remark" : "结束日期"
+      }, {
+        "primaryKey" : "loan_term",
+        "code" : "field0011",
+        "label" : "贷款时间",
+        "remark" : "贷款时间"
+      }, {
+        "primaryKey" : "latest_rate",
+        "code" : "field0042",
+        "label" : "最新利率",
+        "remark" : "最新利率"
+      }, {
+        "primaryKey" : "principal_repayment_mode",
+        "code" : "field0013",
+        "label" : "还本模式",
+        "remark" : "还本模式"
+      }, {
+        "primaryKey" : "interest_payment_mode",
+        "code" : "field0014",
+        "label" : "付息模式",
+        "remark" : "付息模式"
+      }, {
+        "primaryKey" : "guarantee_mode",
+        "code" : "field0054",
+        "label" : "担保模式",
+        "remark" : "担保模式"
+      }, {
+        "primaryKey" : "loan_mode",
+        "code" : "field0055",
+        "label" : "贷款模式",
+        "remark" : "贷款模式"
+      }, {
+        "primaryKey" : "fund_usage",
+        "code" : "field0056",
+        "label" : "资金用途",
+        "remark" : "资金用途"
+      }, {
+        "primaryKey" : "outflow_fund_total",
+        "code" : "field0034",
+        "label" : "下柜资金合计",
+        "remark" : "下柜资金合计"
+      }, {
+        "primaryKey" : "loan_balance_total",
+        "code" : "field0035",
+        "label" : "贷款余额合计",
+        "remark" : "贷款余额合计"
+      }, {
+        "primaryKey" : "principal_total",
+        "code" : "field0036",
+        "label" : "还本合计",
+        "remark" : "还本合计"
+      }, {
+        "primaryKey" : "interest_total",
+        "code" : "field0037",
+        "label" : "付息合计",
+        "remark" : "付息合计"
+      }, {
+        "primaryKey" : "planned_principal_total",
+        "code" : "field0038",
+        "label" : "计划还本合计",
+        "remark" : "计划还本合计"
+      }, {
+        "primaryKey" : "simulated_interest_total",
+        "code" : "field0039",
+        "label" : "模拟付息合计",
+        "remark" : "模拟付息合计"
+      }, {
+        "primaryKey" : "default_repayment_day",
+        "code" : "field0040",
+        "label" : "默认还款日",
+        "remark" : "默认还款日"
+      }, {
+        "primaryKey" : "rate_effective_time",
+        "code" : "field0041",
+        "label" : "利率生效时间",
+        "remark" : "利率生效时间"
+      }, {
+        "primaryKey" : "add_detail_date_flag",
+        "code" : "field0061",
+        "label" : "是否添加明细表日期",
+        "remark" : "是否添加明细表日期"
+      }, {
+        "primaryKey" : "default_repayment_start_month",
+        "code" : "field0043",
+        "label" : "默认开始还款月",
+        "remark" : "默认开始还款月"
+      } ],
+      "sons" : [ {
+        "name" : "还款计划表（按日）",
+        "table" : "formson_0030",
+        "fields" : [ {
+          "primaryKey" : "seq_no_1",
+          "code" : "field0025",
+          "label" : "序号1",
+          "remark" : "序号1"
+        }, {
+          "primaryKey" : "time",
+          "code" : "field0026",
+          "label" : "时间",
+          "remark" : "时间"
+        }, {
+          "primaryKey" : "outflow_fund",
+          "code" : "field0027",
+          "label" : "下柜资金",
+          "remark" : "下柜资金"
+        }, {
+          "primaryKey" : "loan_balance",
+          "code" : "field0028",
+          "label" : "贷款余额",
+          "remark" : "贷款余额"
+        }, {
+          "primaryKey" : "principal",
+          "code" : "field0029",
+          "label" : "还本",
+          "remark" : "还本"
+        }, {
+          "primaryKey" : "interest",
+          "code" : "field0030",
+          "label" : "付息",
+          "remark" : "付息"
+        }, {
+          "primaryKey" : "remark_repayment_plan",
+          "code" : "field0031",
+          "label" : "备注-还款计划",
+          "remark" : "备注-还款计划"
+        }, {
+          "primaryKey" : "planned_principal",
+          "code" : "field0032",
+          "label" : "计划还本",
+          "remark" : "计划还本"
+        }, {
+          "primaryKey" : "simulated_interest",
+          "code" : "field0033",
+          "label" : "模拟付息",
+          "remark" : "模拟付息"
+        } ]
+      } ],
+      "semantics" : {
+        "billNo" : "field0001",
+        "latestRate" : "field0042",
+        "rateEffectiveTime" : "field0041",
+        "repayModeEnumField" : "field0013",
+        "interestModeEnumField" : "field0014",
+        "sumOutCabinet" : "field0034"
+      },
+      "events" : {
+        "daily_installment_principal_change_monitor" : {
+          "type" : "rowChange",
+          "triggerName" : "trg_formson_0030_monitor",
+          "source" : {
+            "table" : "formson_0030"
+          },
+          "monitoredFields" : [ {
+            "childField" : "field0027",
+            "logFieldCode" : "field0027",
+            "onlyIfNewNotNull" : true
+          }, {
+            "childField" : "field0029",
+            "logFieldCode" : "field0029",
+            "onlyIfNewNotNull" : true
+          } ],
+          "output" : {
+            "table" : "Middle_Insert_Records",
+            "monitoredFieldFormat" : "{fieldCode}={value}",
+            "targetTableId" : "child.id",
+            "skipWhenNewValueIsNull" : true
           }
         }
       },
-      "enumIds": {}
+      "enumIds" : {
+        "repay_mode_installment_principal" : null,
+        "interest_mode_installment_interest" : null
+      }
     }
   }
 }
-

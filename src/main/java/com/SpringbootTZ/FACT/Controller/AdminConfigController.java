@@ -1,7 +1,6 @@
 package com.SpringbootTZ.FACT.Controller;
 
 import com.SpringbootTZ.FACT.Entity.SysDict;
-import com.SpringbootTZ.FACT.Entity.SysSqlConfig;
 import com.SpringbootTZ.FACT.Service.ConfigFileRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,7 +28,6 @@ public class AdminConfigController {
         try {
             Map<String, Object> data = new HashMap<>();
             data.put("sysDict", configFileRepository.listAllDicts());
-            data.put("sysSqlConfig", configFileRepository.listAllSqlConfigs());
 
             resp.put("success", true);
             resp.put("message", "ok");
@@ -44,7 +42,6 @@ public class AdminConfigController {
 
     public static class ImportPayload {
         private List<SysDict> sysDict;
-        private List<SysSqlConfig> sysSqlConfig;
 
         public List<SysDict> getSysDict() {
             return sysDict;
@@ -54,13 +51,6 @@ public class AdminConfigController {
             this.sysDict = sysDict;
         }
 
-        public List<SysSqlConfig> getSysSqlConfig() {
-            return sysSqlConfig;
-        }
-
-        public void setSysSqlConfig(List<SysSqlConfig> sysSqlConfig) {
-            this.sysSqlConfig = sysSqlConfig;
-        }
     }
 
     @PostMapping("/import")
@@ -72,7 +62,6 @@ public class AdminConfigController {
             }
             // 覆盖写入：便于恢复/环境迁移
             configFileRepository.saveAllDicts(payload.getSysDict());
-            configFileRepository.saveAllSqlConfigs(payload.getSysSqlConfig());
 
             resp.put("success", true);
             resp.put("message", "导入成功");
